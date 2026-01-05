@@ -8,7 +8,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field
@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from game_engine import get_game_engine, reset_game_engine
 from llm_engine import get_llm_engine
 from audio_engine import get_audio_engine
+from websocket_manager import get_websocket_manager
 
 load_dotenv()
 
@@ -263,6 +264,10 @@ tags_metadata = [
     {
         "name": "Interaction",
         "description": "Interact with NPCs and the environment",
+    },
+    {
+        "name": "WebSocket",
+        "description": "Real-time game updates via WebSocket connection",
     },
 ]
 
@@ -957,6 +962,188 @@ async def perform_action(action: str, target: Optional[str] = None):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# WebSocket Endpoints
+# =============================================================================
+
+@app.websocket("/ws/{player_id}")
+async def websocket_endpoint(websocket: WebSocket, player_id: str):
+    """
+    WebSocket endpoint for real-time game updates.
+
+    Connect with a unique player_id to receive live game state updates.
+    The connection will receive JSON messages with the following types:
+    - game_update: State changes from game actions
+    - error: Error notifications
+    - ping: Connection health checks (respond with pong)
+
+    Send JSON messages to perform actions:
+    - {"action": "move", "direction": "north"}
+    - {"action": "attack"}
+    - {"action": "flee"}
+    - {"action": "take", "item_id": "sword"}
+    - {"action": "use", "item_id": "potion"}
+    - {"action": "talk", "message": "Hello"}
+    - {"action": "rest"}
+    - {"type": "pong"} - Response to ping
+    """
+    ws_manager = get_websocket_manager()
+
+    # Accept connection
+    if not await ws_manager.connect(websocket, player_id):
+        return
+
+    engine = get_game_engine()
+    audio_engine = get_audio_engine()
+
+    try:
+        # Send initial state
+        await ws_manager.send_to_player(player_id, {
+            "type": "connected",
+            "message": f"Connected as {player_id}",
+            "state": engine.get_game_state() if engine._player_state else None
+        })
+
+        while True:
+            # Wait for messages from client
+            data = await websocket.receive_json()
+
+            # Handle pong responses
+            if data.get("type") == "pong":
+                ws_manager.update_last_ping(player_id)
+                continue
+
+            action = data.get("action")
+            if not action:
+                await ws_manager.send_error(player_id, "Missing 'action' field")
+                continue
+
+            result = None
+            audio_data = None
+
+            try:
+                # Process game actions
+                if action == "move":
+                    direction = data.get("direction")
+                    if not direction:
+                        await ws_manager.send_error(player_id, "Missing 'direction'")
+                        continue
+                    result = await engine.move(direction)
+
+                    # Generate movement audio
+                    terrain = result.terrain_type if hasattr(result, 'terrain_type') else "stone"
+                    audio_batch = audio_engine.generate_movement_audio(terrain)
+                    audio_data = audio_batch.model_dump()
+
+                elif action == "attack":
+                    result = await engine.attack()
+                    if result.success:
+                        damage = result.combat_data.get("player_damage", 0) if result.combat_data else 0
+                        audio_batch = audio_engine.generate_combat_audio("player_hit", damage)
+                        audio_data = audio_batch.model_dump()
+
+                elif action == "flee":
+                    result = await engine.flee()
+                    if result.success:
+                        audio_batch = audio_engine.generate_movement_audio("run")
+                        audio_data = audio_batch.model_dump()
+
+                elif action == "take":
+                    item_id = data.get("item_id")
+                    if not item_id:
+                        await ws_manager.send_error(player_id, "Missing 'item_id'")
+                        continue
+                    result = await engine.take_item(item_id)
+                    if result.success:
+                        item_type = "gold" if "gold" in item_id.lower() else "item"
+                        audio_intent = audio_engine.generate_pickup_audio(item_type)
+                        audio_data = {"primary": audio_intent.model_dump()}
+
+                elif action == "use":
+                    item_id = data.get("item_id")
+                    if not item_id:
+                        await ws_manager.send_error(player_id, "Missing 'item_id'")
+                        continue
+                    result = await engine.use_item(item_id)
+                    if result.success:
+                        if "potion" in item_id.lower():
+                            audio_intent = audio_engine.generate_potion_audio()
+                            audio_data = {"primary": audio_intent.model_dump()}
+
+                elif action == "talk":
+                    message = data.get("message", "")
+                    result = await engine.talk(message)
+                    if result.success and result.dialogue_data:
+                        mood = result.dialogue_data.get("mood", "friendly")
+                        audio_intent = audio_engine.generate_npc_reaction_audio(mood)
+                        audio_data = {"primary": audio_intent.model_dump()}
+
+                elif action == "rest":
+                    result = engine.rest()
+
+                elif action == "new_game":
+                    player_name = data.get("player_name", "Adventurer")
+                    reset_game_engine()
+                    engine = get_game_engine()
+                    result = await engine.start_new_game(player_name)
+
+                else:
+                    await ws_manager.send_error(player_id, f"Unknown action: {action}")
+                    continue
+
+                # Broadcast state update
+                if result:
+                    await ws_manager.broadcast_game_state(
+                        player_id=player_id,
+                        event_type=action,
+                        state=engine.get_game_state(),
+                        narrative=result.narrative,
+                        audio=audio_data,
+                        combat=result.combat_data,
+                        dialogue=result.dialogue_data
+                    )
+
+            except Exception as e:
+                await ws_manager.send_error(player_id, str(e))
+
+    except WebSocketDisconnect:
+        await ws_manager.disconnect(player_id)
+    except Exception:
+        await ws_manager.disconnect(player_id)
+
+
+@app.get(
+    "/api/ws/info",
+    tags=["WebSocket"],
+    summary="WebSocket connection info",
+    description="Get information about how to connect to the WebSocket endpoint."
+)
+async def websocket_info():
+    """Get WebSocket connection information."""
+    ws_manager = get_websocket_manager()
+    return {
+        "endpoint": "/ws/{player_id}",
+        "description": "Connect with a unique player_id for real-time updates",
+        "active_connections": ws_manager.connection_count,
+        "actions": [
+            {"action": "move", "params": {"direction": "north|south|east|west"}},
+            {"action": "attack", "params": {}},
+            {"action": "flee", "params": {}},
+            {"action": "take", "params": {"item_id": "string"}},
+            {"action": "use", "params": {"item_id": "string"}},
+            {"action": "talk", "params": {"message": "string (optional)"}},
+            {"action": "rest", "params": {}},
+            {"action": "new_game", "params": {"player_name": "string (optional)"}},
+        ],
+        "message_types": {
+            "connected": "Initial connection confirmation with current state",
+            "game_update": "State update after an action",
+            "error": "Error notification",
+            "ping": "Connection health check (respond with {type: 'pong'})",
+        }
+    }
 
 
 # Run with: uvicorn main:app --reload
