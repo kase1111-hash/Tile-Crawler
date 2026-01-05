@@ -8,9 +8,10 @@
     "default_difficulty": "normal"
   },
   "llm": {
-    "provider": "openai",
-    "model": "gpt-4o-mini",
-    "fallback_model": "gpt-3.5-turbo",
+    "provider": "ollama",
+    "model": "llama3.2",
+    "fallback_model": "mistral",
+    "base_url": "http://localhost:11434/v1",
     "temperature": {
       "exploration": 0.7,
       "combat": 0.5,

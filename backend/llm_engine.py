@@ -46,9 +46,9 @@ class LLMEngine:
     """
 
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-        self.base_url = os.getenv("OPENAI_API_BASE")
+        self.api_key = os.getenv("OPENAI_API_KEY", "ollama")
+        self.model = os.getenv("LLM_MODEL", "llama3.2")
+        self.base_url = os.getenv("OPENAI_API_BASE", "http://localhost:11434/v1")
 
         if self.api_key:
             self.client = AsyncOpenAI(
