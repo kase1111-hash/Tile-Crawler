@@ -8,9 +8,10 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.openapi.utils import get_openapi
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 from game_engine import get_game_engine, reset_game_engine
@@ -20,73 +21,307 @@ from audio_engine import get_audio_engine
 load_dotenv()
 
 
-# Request/Response Models
+# =============================================================================
+# Request/Response Models with OpenAPI Documentation
+# =============================================================================
+
 class NewGameRequest(BaseModel):
-    player_name: str = "Adventurer"
+    """Request to start a new game session."""
+    player_name: str = Field(
+        default="Adventurer",
+        description="The name of the player character",
+        min_length=1,
+        max_length=50,
+        json_schema_extra={"example": "Brave Hero"}
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "player_name": "Brave Hero"
+            }
+        }
 
 
 class MoveRequest(BaseModel):
-    direction: str  # north, south, east, west, up, down
+    """Request to move the player in a direction."""
+    direction: str = Field(
+        description="Direction to move: north, south, east, west, up, or down",
+        json_schema_extra={"example": "north"}
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "direction": "north"
+            }
+        }
 
 
 class TakeItemRequest(BaseModel):
-    item_id: str
+    """Request to pick up an item from the current room."""
+    item_id: str = Field(
+        description="The unique identifier of the item to pick up",
+        json_schema_extra={"example": "rusty_sword"}
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "item_id": "healing_potion"
+            }
+        }
 
 
 class UseItemRequest(BaseModel):
-    item_id: str
+    """Request to use an item from inventory."""
+    item_id: str = Field(
+        description="The unique identifier of the item to use",
+        json_schema_extra={"example": "healing_potion"}
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "item_id": "healing_potion"
+            }
+        }
 
 
 class TalkRequest(BaseModel):
-    message: str = ""
+    """Request to talk to an NPC."""
+    message: str = Field(
+        default="",
+        description="Optional message to say to the NPC",
+        json_schema_extra={"example": "Hello, what news do you have?"}
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "message": "Hello, what news do you have?"
+            }
+        }
+
+
+class AudioIntentResponse(BaseModel):
+    """TTS audio synthesis intent for procedural sound generation."""
+    event_type: str = Field(description="Type of audio: sfx, ambient, music_motif, ui_feedback, dialogue")
+    onomatopoeia: str = Field(description="Comic-style sound text to synthesize (e.g., 'KRAKOOM!')")
+    emotion: str = Field(description="Emotional tone: neutral, tense, triumphant, mysterious, danger, peaceful")
+    intensity: float = Field(description="Sound intensity from 0.0 to 1.0")
+    pitch_shift: float = Field(description="Pitch adjustment in semitones (-12 to +12)")
+    speed: float = Field(description="Playback speed multiplier (0.5 to 2.0)")
+    reverb: float = Field(description="Reverb amount from 0.0 to 1.0")
+    style: str = Field(description="Audio style: comic_noir, fantasy_epic, horror_whisper, retro_8bit")
+    loop: bool = Field(description="Whether the sound should loop")
+    priority: int = Field(description="Priority level 1-10, higher = more important")
 
 
 class ActionResponse(BaseModel):
-    success: bool
-    message: str
-    narrative: str = ""
-    map: Optional[list[str]] = None
-    state: Optional[dict] = None
-    combat: Optional[dict] = None
-    dialogue: Optional[dict] = None
-    audio: Optional[dict] = None  # Audio intent for TTS synthesis
+    """Standard response for game actions."""
+    success: bool = Field(description="Whether the action was successful")
+    message: str = Field(description="Human-readable result message")
+    narrative: str = Field(default="", description="LLM-generated narrative text")
+    map: Optional[list[str]] = Field(default=None, description="ASCII map of current room (11x15 grid)")
+    state: Optional[dict] = Field(default=None, description="Full game state snapshot")
+    combat: Optional[dict] = Field(default=None, description="Combat state if in battle")
+    dialogue: Optional[dict] = Field(default=None, description="NPC dialogue data if talking")
+    audio: Optional[dict] = Field(default=None, description="TTS audio intent for sound synthesis")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "You move north into a dark corridor.",
+                "narrative": "The ancient stones crumble beneath your feet as you venture deeper into the dungeon.",
+                "audio": {
+                    "primary": {
+                        "event_type": "sfx",
+                        "onomatopoeia": "CREEEAK... thud",
+                        "emotion": "mysterious",
+                        "intensity": 0.6
+                    }
+                }
+            }
+        }
 
 
 class GameStateResponse(BaseModel):
-    player: dict
-    position: list[int]
-    room: dict
-    inventory: list[dict]
-    gold: int
-    combat: Optional[dict]
-    narrative: dict
-    stats: dict
+    """Complete game state snapshot."""
+    player: dict = Field(description="Player stats including HP, level, attributes")
+    position: list[int] = Field(description="Current [x, y, z] coordinates")
+    room: dict = Field(description="Current room data including map, enemies, items")
+    inventory: list[dict] = Field(description="List of items in player's inventory")
+    gold: int = Field(description="Amount of gold the player has")
+    combat: Optional[dict] = Field(default=None, description="Combat state if currently in battle")
+    narrative: dict = Field(description="Narrative context and recent events")
+    stats: dict = Field(description="Game statistics (rooms explored, enemies defeated, etc.)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "player": {
+                    "name": "Brave Hero",
+                    "level": 1,
+                    "hp": "100/100",
+                    "mana": "50/50",
+                    "attack": 10,
+                    "defense": 5
+                },
+                "position": [0, 0, 1],
+                "room": {
+                    "biome": "dungeon",
+                    "description": "A cold stone chamber...",
+                    "exits": {"north": True, "south": False, "east": True, "west": False}
+                },
+                "inventory": [
+                    {"id": "torch", "name": "Torch", "quantity": 1}
+                ],
+                "gold": 20,
+                "combat": None,
+                "narrative": {"story_summary": "A brave adventurer enters the dungeon..."},
+                "stats": {"rooms_explored": 1, "enemies_defeated": 0}
+            }
+        }
 
 
 class HealthResponse(BaseModel):
-    status: str
-    llm_available: bool
-    version: str
+    """API health check response."""
+    status: str = Field(description="Service status: online, healthy, degraded")
+    llm_available: bool = Field(description="Whether the LLM engine is available")
+    version: str = Field(description="API version string")
 
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "healthy",
+                "llm_available": True,
+                "version": "0.1.0"
+            }
+        }
+
+
+class InventoryResponse(BaseModel):
+    """Player inventory response."""
+    inventory: list[dict] = Field(description="List of inventory items")
+    gold: int = Field(description="Current gold amount")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "inventory": [
+                    {"id": "torch", "name": "Torch", "category": "tool", "quantity": 1},
+                    {"id": "healing_potion", "name": "Healing Potion", "category": "consumable", "quantity": 2}
+                ],
+                "gold": 20
+            }
+        }
+
+
+class SaveLoadResponse(BaseModel):
+    """Response for save/load operations."""
+    success: bool = Field(description="Whether the operation succeeded")
+    message: str = Field(description="Result message")
+    state: Optional[dict] = Field(default=None, description="Game state (for load operations)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Game saved successfully",
+                "state": None
+            }
+        }
+
+
+# =============================================================================
+# API Tags for Documentation Organization
+# =============================================================================
+
+tags_metadata = [
+    {
+        "name": "Health",
+        "description": "API health and status endpoints",
+    },
+    {
+        "name": "Game Management",
+        "description": "Start, save, and load game sessions",
+    },
+    {
+        "name": "Movement",
+        "description": "Move the player through the dungeon",
+    },
+    {
+        "name": "Combat",
+        "description": "Combat actions when fighting enemies",
+    },
+    {
+        "name": "Inventory",
+        "description": "Manage player inventory and items",
+    },
+    {
+        "name": "Interaction",
+        "description": "Interact with NPCs and the environment",
+    },
+]
+
+
+# =============================================================================
+# Application Setup
+# =============================================================================
 
 # Lifespan management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan."""
-    # Startup
     print("🎮 Tile-Crawler Backend Starting...")
     print(f"   LLM Available: {get_llm_engine().is_available()}")
     yield
-    # Shutdown
     print("🎮 Tile-Crawler Backend Shutting Down...")
 
 
-# Create FastAPI app
+# Create FastAPI app with enhanced documentation
 app = FastAPI(
     title="Tile-Crawler API",
-    description="Backend API for the LLM-powered dungeon crawler",
+    description="""
+# Tile-Crawler Backend API
+
+An LLM-powered procedural dungeon crawler with TTS-based audio synthesis.
+
+## Features
+
+- **Procedural Generation**: Rooms, narratives, and encounters generated by LLM
+- **Turn-Based Combat**: Fight enemies in strategic turn-based battles
+- **TTS Audio**: Procedural sound effects via text-to-speech synthesis
+- **Persistent State**: Save and load your progress
+
+## Quick Start
+
+1. **Start a new game**: `POST /api/game/new`
+2. **Explore**: `POST /api/game/move` with direction
+3. **Check inventory**: `GET /api/game/inventory`
+4. **Fight enemies**: `POST /api/game/combat/attack`
+5. **Save progress**: `POST /api/game/save`
+
+## Audio System
+
+The API returns `audio` intents with comic-book style onomatopoeia (KRAKOOM!, WHOOSH!)
+that can be synthesized using TTS and processed with Web Audio API effects.
+    """,
     version="0.1.0",
-    lifespan=lifespan
+    openapi_tags=tags_metadata,
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    contact={
+        "name": "Tile-Crawler",
+        "url": "https://github.com/kase1111-hash/Tile-Crawler",
+    },
+    license_info={
+        "name": "MIT",
+    },
 )
 
 # Configure CORS
@@ -99,10 +334,19 @@ app.add_middleware(
 )
 
 
+# =============================================================================
 # Health & Status Endpoints
-@app.get("/", response_model=HealthResponse)
+# =============================================================================
+
+@app.get(
+    "/",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Root health check",
+    description="Quick health check endpoint returning API status."
+)
 async def root():
-    """Health check endpoint."""
+    """Root endpoint - returns basic health status."""
     return HealthResponse(
         status="online",
         llm_available=get_llm_engine().is_available(),
@@ -110,9 +354,15 @@ async def root():
     )
 
 
-@app.get("/api/health", response_model=HealthResponse)
-async def health_check():
-    """Detailed health check."""
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Health check",
+    description="Detailed health check including LLM availability status."
+)
+async def health_check_root():
+    """Detailed health check at /health."""
     return HealthResponse(
         status="healthy",
         llm_available=get_llm_engine().is_available(),
@@ -120,10 +370,40 @@ async def health_check():
     )
 
 
+@app.get(
+    "/api/health",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="API health check",
+    description="Detailed health check including LLM availability status."
+)
+async def health_check():
+    """Detailed health check at /api/health."""
+    return HealthResponse(
+        status="healthy",
+        llm_available=get_llm_engine().is_available(),
+        version="0.1.0"
+    )
+
+
+# =============================================================================
 # Game Management Endpoints
-@app.post("/api/game/new", response_model=ActionResponse)
+# =============================================================================
+
+@app.post(
+    "/api/game/new",
+    response_model=ActionResponse,
+    tags=["Game Management"],
+    summary="Start a new game",
+    description="""
+Start a new game session with the specified player name.
+
+This resets all game state and generates the starting room.
+Returns the initial game state including map, player stats, and audio intent.
+    """
+)
 async def new_game(request: NewGameRequest):
-    """Start a new game."""
+    """Start a new game session."""
     try:
         engine = reset_game_engine()
         audio_engine = get_audio_engine()
@@ -147,9 +427,15 @@ async def new_game(request: NewGameRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/game/state", response_model=GameStateResponse)
+@app.get(
+    "/api/game/state",
+    response_model=GameStateResponse,
+    tags=["Game Management"],
+    summary="Get current game state",
+    description="Retrieve the complete current game state including player, room, inventory, and stats."
+)
 async def get_game_state():
-    """Get current game state."""
+    """Get the current game state."""
     try:
         engine = get_game_engine()
         state = engine.get_game_state()
@@ -158,35 +444,60 @@ async def get_game_state():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/game/save")
+@app.post(
+    "/api/game/save",
+    response_model=SaveLoadResponse,
+    tags=["Game Management"],
+    summary="Save game",
+    description="Save the current game state to persistent storage."
+)
 async def save_game():
     """Save the current game state."""
     try:
         engine = get_game_engine()
         engine._save_all()
-        return {"success": True, "message": "Game saved successfully"}
+        return SaveLoadResponse(success=True, message="Game saved successfully")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/game/load")
+@app.post(
+    "/api/game/load",
+    response_model=SaveLoadResponse,
+    tags=["Game Management"],
+    summary="Load game",
+    description="Load a previously saved game state from storage."
+)
 async def load_game():
     """Load saved game state."""
     try:
-        # Reset engine to reload from saved files
         engine = reset_game_engine()
         state = engine.get_game_state()
-        return {
-            "success": True,
-            "message": "Game loaded successfully",
-            "state": state
-        }
+        return SaveLoadResponse(
+            success=True,
+            message="Game loaded successfully",
+            state=state
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# =============================================================================
 # Movement Endpoints
-@app.post("/api/game/move", response_model=ActionResponse)
+# =============================================================================
+
+@app.post(
+    "/api/game/move",
+    response_model=ActionResponse,
+    tags=["Movement"],
+    summary="Move player",
+    description="""
+Move the player in a cardinal direction (north, south, east, west) or vertically (up, down).
+
+Returns success/failure, narrative description, updated map, and audio intent.
+May trigger combat if entering a room with enemies.
+    """
+)
 async def move(request: MoveRequest):
     """Move the player in a direction."""
     valid_directions = ["north", "south", "east", "west", "up", "down"]
@@ -238,34 +549,48 @@ async def move(request: MoveRequest):
 
 
 # Shorthand movement endpoints
-@app.post("/api/game/move/north", response_model=ActionResponse)
+@app.post("/api/game/move/north", response_model=ActionResponse, tags=["Movement"], summary="Move north")
 async def move_north():
-    """Move north."""
+    """Move the player north."""
     return await move(MoveRequest(direction="north"))
 
 
-@app.post("/api/game/move/south", response_model=ActionResponse)
+@app.post("/api/game/move/south", response_model=ActionResponse, tags=["Movement"], summary="Move south")
 async def move_south():
-    """Move south."""
+    """Move the player south."""
     return await move(MoveRequest(direction="south"))
 
 
-@app.post("/api/game/move/east", response_model=ActionResponse)
+@app.post("/api/game/move/east", response_model=ActionResponse, tags=["Movement"], summary="Move east")
 async def move_east():
-    """Move east."""
+    """Move the player east."""
     return await move(MoveRequest(direction="east"))
 
 
-@app.post("/api/game/move/west", response_model=ActionResponse)
+@app.post("/api/game/move/west", response_model=ActionResponse, tags=["Movement"], summary="Move west")
 async def move_west():
-    """Move west."""
+    """Move the player west."""
     return await move(MoveRequest(direction="west"))
 
 
+# =============================================================================
 # Combat Endpoints
-@app.post("/api/game/combat/attack", response_model=ActionResponse)
+# =============================================================================
+
+@app.post(
+    "/api/game/combat/attack",
+    response_model=ActionResponse,
+    tags=["Combat"],
+    summary="Attack enemy",
+    description="""
+Attack the current enemy in combat. Only works when in an active combat encounter.
+
+Returns combat results including damage dealt, enemy response, and victory/defeat status.
+Includes audio intents for attack sounds (THWACK!, KRAKOOM! for criticals).
+    """
+)
 async def attack():
-    """Attack the current enemy."""
+    """Attack the current enemy in combat."""
     try:
         engine = get_game_engine()
         audio_engine = get_audio_engine()
@@ -319,7 +644,18 @@ async def attack():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/game/combat/flee", response_model=ActionResponse)
+@app.post(
+    "/api/game/combat/flee",
+    response_model=ActionResponse,
+    tags=["Combat"],
+    summary="Flee from combat",
+    description="""
+Attempt to flee from the current combat encounter.
+
+Success is based on player speed vs enemy speed. Failed flee attempts may result in
+taking damage. Returns to exploration mode on success.
+    """
+)
 async def flee():
     """Attempt to flee from combat."""
     try:
@@ -358,8 +694,17 @@ async def flee():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# =============================================================================
 # Inventory Endpoints
-@app.post("/api/game/take", response_model=ActionResponse)
+# =============================================================================
+
+@app.post(
+    "/api/game/take",
+    response_model=ActionResponse,
+    tags=["Inventory"],
+    summary="Take item",
+    description="Pick up an item from the current room and add it to inventory."
+)
 async def take_item(request: TakeItemRequest):
     """Pick up an item from the current room."""
     try:
@@ -387,7 +732,20 @@ async def take_item(request: TakeItemRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/game/use", response_model=ActionResponse)
+@app.post(
+    "/api/game/use",
+    response_model=ActionResponse,
+    tags=["Inventory"],
+    summary="Use item",
+    description="""Use an item from the player's inventory.
+
+Different item types produce different effects:
+- **Potions/Elixirs**: Restore HP or provide buffs
+- **Scrolls**: Cast magical effects
+- **Equipment**: Equip weapons or armor
+
+Audio feedback is generated based on the item type used."""
+)
 async def use_item(request: UseItemRequest):
     """Use an item from inventory."""
     try:
@@ -424,7 +782,13 @@ async def use_item(request: UseItemRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/game/inventory")
+@app.get(
+    "/api/game/inventory",
+    response_model=InventoryResponse,
+    tags=["Inventory"],
+    summary="Get inventory",
+    description="Retrieve the player's current inventory items and gold count."
+)
 async def get_inventory():
     """Get the player's inventory."""
     try:
@@ -439,7 +803,21 @@ async def get_inventory():
 
 
 # Interaction Endpoints
-@app.post("/api/game/talk", response_model=ActionResponse)
+@app.post(
+    "/api/game/talk",
+    response_model=ActionResponse,
+    tags=["Interaction"],
+    summary="Talk to NPC",
+    description="""Initiate conversation with an NPC in the current room.
+
+The LLM generates contextual dialogue responses based on:
+- NPC personality and role
+- Current game state
+- Previous interactions
+- Player's message content
+
+Audio feedback reflects the NPC's mood (friendly, hostile, nervous, etc.)."""
+)
 async def talk(request: TalkRequest):
     """Talk to an NPC in the current room."""
     try:
@@ -466,7 +844,19 @@ async def talk(request: TalkRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/game/rest", response_model=ActionResponse)
+@app.post(
+    "/api/game/rest",
+    response_model=ActionResponse,
+    tags=["Interaction"],
+    summary="Rest and recover",
+    description="""Rest to recover HP and mana.
+
+**Requirements:**
+- Must be in a safe room (no enemies present)
+- Cannot rest during combat
+
+Generates peaceful ambient audio during rest."""
+)
 async def rest():
     """Rest to recover HP and mana (only in safe rooms)."""
     try:
@@ -507,7 +897,24 @@ async def rest():
 
 
 # Generic action endpoint for flexibility
-@app.post("/api/game/action", response_model=ActionResponse)
+@app.post(
+    "/api/game/action",
+    response_model=ActionResponse,
+    tags=["Game Management"],
+    summary="Generic action",
+    description="""Perform any game action through a unified endpoint.
+
+**Supported actions:**
+- `move` - Move in a direction (requires target: north/south/east/west)
+- `attack` - Attack the current enemy
+- `flee` - Attempt to flee from combat
+- `take` - Pick up an item (requires target: item_id)
+- `use` - Use an inventory item (requires target: item_id)
+- `talk` - Talk to an NPC (optional target: message)
+- `rest` - Rest to recover HP
+
+This endpoint provides flexibility for custom UI implementations."""
+)
 async def perform_action(action: str, target: Optional[str] = None):
     """
     Perform a generic game action.
