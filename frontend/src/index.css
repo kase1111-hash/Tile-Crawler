@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom font for tileset - fallback to monospace */
+/* Custom font for tileset */
 @font-face {
   font-family: 'DungeonTiles';
   src: url('./fonts/DungeonTiles.ttf') format('truetype');
@@ -14,10 +14,10 @@
 /* Base styles */
 :root {
   --color-bg: #0a0a0f;
-  --color-panel: #1a1a2e;
-  --color-border: #3d3d5c;
-  --color-text: #e0e0e0;
-  --color-muted: #8888aa;
+  --color-panel: #0d0d14;
+  --color-border: #2a2a3a;
+  --color-text: #c0c0c0;
+  --color-muted: #606080;
   --color-accent: #7b68ee;
 }
 
@@ -25,32 +25,108 @@
   box-sizing: border-box;
 }
 
-html {
-  font-size: 16px;
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Courier New', monospace;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
   background-color: var(--color-bg);
   color: var(--color-text);
-  min-height: 100vh;
-  overflow-x: hidden;
 }
 
-#root {
-  min-height: 100vh;
+/* TUI Container - fills entire screen */
+.tui-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 4px;
 }
 
-/* Tile map styling - LARGER */
-.tile-map {
-  font-family: 'DungeonTiles', 'Courier New', monospace;
-  font-size: 2.5rem;
+/* Top status bar */
+.tui-status {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Main content area */
+.tui-main {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  min-height: 0;
+}
+
+/* Panels */
+.tui-panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tui-left {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.tui-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.tui-right {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+/* Sections within panels */
+.tui-section {
+  margin-bottom: 12px;
+}
+
+.tui-section:last-child {
+  margin-bottom: 0;
+}
+
+.tui-header {
+  color: var(--color-accent);
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+/* Selected item highlight */
+.tui-selected {
+  background: rgba(123, 104, 238, 0.2);
+}
+
+/* Map display */
+.tui-map {
+  font-family: 'DungeonTiles', 'Consolas', monospace;
+  font-size: 28px;
   line-height: 1;
   letter-spacing: 0;
   white-space: pre;
   user-select: none;
+}
+
+.tui-map-row {
+  display: flex;
+  justify-content: center;
 }
 
 /* Tile colors */
@@ -58,8 +134,8 @@ body {
 .tile-enemy { color: #ff4444; text-shadow: 0 0 6px #ff4444; }
 .tile-npc { color: #ffff00; text-shadow: 0 0 6px #ffff00; }
 .tile-item { color: #00ffff; text-shadow: 0 0 4px #00ffff; }
-.tile-wall { color: #6a6a8a; }
-.tile-floor { color: #4a4a6a; }
+.tile-wall { color: #5a5a7a; }
+.tile-floor { color: #3a3a5a; }
 .tile-water { color: #0088ff; text-shadow: 0 0 4px #0088ff; }
 .tile-lava { color: #ff6600; text-shadow: 0 0 6px #ff6600; }
 .tile-door { color: #8b5a2b; }
@@ -67,9 +143,15 @@ body {
 .tile-trap { color: #ff00ff; }
 .tile-chest { color: #ffd700; text-shadow: 0 0 4px #ffd700; }
 
-/* Panel styling */
-.game-panel {
-  @apply bg-dungeon-panel border border-dungeon-border rounded-lg p-3;
+/* Bottom narrative area */
+.tui-narrative {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  min-height: 80px;
+  max-height: 120px;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 /* Scrollbar styling */
@@ -79,7 +161,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-panel);
+  background: var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -91,88 +173,56 @@ body {
   background: var(--color-muted);
 }
 
-/* Button base styles */
+/* Game menu styling */
+.game-panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  padding: 16px;
+  border-radius: 4px;
+}
+
 .game-btn {
-  @apply px-3 py-1.5 rounded font-bold transition-all duration-150;
-  @apply border border-dungeon-border bg-dungeon-panel text-dungeon-text;
-  @apply hover:bg-dungeon-accent hover:border-dungeon-accent;
-  @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-dungeon-panel;
-  @apply focus:outline-none focus:ring-2 focus:ring-dungeon-accent focus:ring-opacity-50;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-.game-btn-primary {
-  @apply bg-dungeon-accent border-dungeon-accent;
-  @apply hover:bg-opacity-80;
+.game-btn:hover:not(:disabled) {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
-.game-btn-danger {
-  @apply bg-dungeon-danger border-dungeon-danger;
-  @apply hover:bg-opacity-80;
-}
-
-.game-btn-success {
-  @apply bg-dungeon-success border-dungeon-success;
-  @apply hover:bg-opacity-80;
-}
-
-/* Health bar */
-.health-bar {
-  @apply h-3 rounded overflow-hidden bg-dungeon-panel;
-}
-
-.health-bar-fill {
-  @apply h-full transition-all duration-300;
-}
-
-.health-bar-hp {
-  @apply bg-gradient-to-r from-red-600 to-red-500;
-}
-
-.health-bar-mana {
-  @apply bg-gradient-to-r from-blue-600 to-blue-500;
-}
-
-.health-bar-xp {
-  @apply bg-gradient-to-r from-purple-600 to-purple-500;
-}
-
-/* Combat flash animation */
-@keyframes damage-flash {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.5) hue-rotate(30deg); }
-}
-
-.damage-flash {
-  animation: damage-flash 0.2s ease-out;
-}
-
-/* Loading spinner */
-.spinner {
-  @apply inline-block w-4 h-4 border-2 rounded-full;
-  border-color: var(--color-accent) transparent var(--color-accent) transparent;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.game-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
-  .tile-map {
-    font-size: 2rem;
-  }
-}
-
 @media (max-width: 900px) {
-  .tile-map {
-    font-size: 1.5rem;
+  .tui-map {
+    font-size: 20px;
+  }
+  .tui-left {
+    width: 180px;
+  }
+  .tui-right {
+    width: 140px;
   }
 }
 
-@media (max-width: 600px) {
-  .tile-map {
-    font-size: 1.2rem;
+@media (max-width: 700px) {
+  .tui-main {
+    flex-direction: column;
+  }
+  .tui-left, .tui-right {
+    width: 100%;
+    max-height: 150px;
+  }
+  .tui-map {
+    font-size: 16px;
   }
 }

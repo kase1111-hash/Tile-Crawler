@@ -1,17 +1,8 @@
-// Main App Component for Tile-Crawler
+// Main App Component for Tile-Crawler - TUI Style
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
-import {
-  GameMap,
-  PlayerStats,
-  Inventory,
-  Combat,
-  Narrative,
-  RoomItems,
-  Dialogue,
-  GameMenu,
-} from './components';
+import { GameMenu } from './components';
 import type { Direction } from './types/game';
 
 function App() {
@@ -35,15 +26,24 @@ function App() {
     clearDialogue,
   } = useGame();
 
+  const [selectedItem, setSelectedItem] = useState<number>(0);
+
   // Keyboard controls
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!gameState || isLoading) return;
-
-      // Don't process if in dialogue or typing
-      if (dialogueData || e.target instanceof HTMLInputElement) return;
+      if (e.target instanceof HTMLInputElement) return;
 
       const inCombat = gameState.combat?.in_combat;
+      const items = gameState.inventory;
+
+      // Dialogue controls
+      if (dialogueData) {
+        if (e.key === 'Escape' || e.key.toLowerCase() === 'q') {
+          clearDialogue();
+        }
+        return;
+      }
 
       // Combat controls
       if (inCombat) {
@@ -60,24 +60,42 @@ function App() {
         return;
       }
 
+      // Inventory navigation
+      if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'k') {
+        setSelectedItem(i => Math.max(0, i - 1));
+        return;
+      }
+      if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'j') {
+        setSelectedItem(i => Math.min(items.length - 1, i + 1));
+        return;
+      }
+      if (e.key === 'Enter' || e.key.toLowerCase() === 'u') {
+        if (items[selectedItem]) {
+          useItem(items[selectedItem].id);
+        }
+        return;
+      }
+
       // Movement controls
       const exits = gameState.room.exits;
       switch (e.key.toLowerCase()) {
         case 'w':
-        case 'arrowup':
           if (exits.north) move('north');
           break;
         case 's':
-        case 'arrowdown':
           if (exits.south) move('south');
           break;
         case 'a':
-        case 'arrowleft':
           if (exits.west) move('west');
           break;
         case 'd':
-        case 'arrowright':
           if (exits.east) move('east');
+          break;
+        case '<':
+          if (exits.up) move('up');
+          break;
+        case '>':
+          if (exits.down) move('down');
           break;
         case 'r':
           rest();
@@ -85,15 +103,29 @@ function App() {
         case 't':
           if (gameState.room.npcs.length > 0) talk();
           break;
-        case 'escape':
-          if (dialogueData) clearDialogue();
+        case 'g':
+          // Take first item in room
+          if (gameState.room.items.length > 0) {
+            takeItem(gameState.room.items[0].id);
+          }
+          break;
+        case 'q':
+          saveGame();
           break;
       }
+
+      // Number keys for taking items
+      const num = parseInt(e.key);
+      if (!isNaN(num) && num >= 1 && num <= 9) {
+        const roomItems = gameState.room.items;
+        if (roomItems[num - 1]) {
+          takeItem(roomItems[num - 1].id);
+        }
+      }
     },
-    [gameState, isLoading, dialogueData, move, attack, flee, rest, talk, clearDialogue]
+    [gameState, isLoading, dialogueData, selectedItem, move, attack, flee, rest, talk, takeItem, useItem, clearDialogue, saveGame]
   );
 
-  // Set up keyboard listener
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -102,11 +134,7 @@ function App() {
   // Auto-save periodically
   useEffect(() => {
     if (!gameState) return;
-
-    const interval = setInterval(() => {
-      saveGame();
-    }, 60000); // Save every minute
-
+    const interval = setInterval(() => saveGame(), 60000);
     return () => clearInterval(interval);
   }, [gameState, saveGame]);
 
@@ -124,240 +152,182 @@ function App() {
   }
 
   const inCombat = gameState.combat?.in_combat ?? false;
+  const exits = gameState.room.exits;
+  const exitStr = [
+    exits.north && 'N',
+    exits.south && 'S',
+    exits.east && 'E',
+    exits.west && 'W',
+    exits.up && '↑',
+    exits.down && '↓'
+  ].filter(Boolean).join(' ');
+
+  // Format HP/MP bars
+  const hpPct = Math.round((gameState.player.hp / gameState.player.max_hp) * 100);
+  const mpPct = Math.round((gameState.player.mana / gameState.player.max_mana) * 100);
+  const xpPct = Math.round((gameState.player.xp / gameState.player.xp_to_level) * 100);
+
+  const hpBar = '█'.repeat(Math.floor(hpPct / 5)) + '░'.repeat(20 - Math.floor(hpPct / 5));
+  const mpBar = '█'.repeat(Math.floor(mpPct / 5)) + '░'.repeat(20 - Math.floor(mpPct / 5));
+  const xpBar = '█'.repeat(Math.floor(xpPct / 5)) + '░'.repeat(20 - Math.floor(xpPct / 5));
 
   return (
-    <div className="min-h-screen bg-dungeon-bg p-2 flex flex-col">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-2 px-2">
-        <h1 className="text-xl font-bold text-dungeon-accent">TILE-CRAWLER</h1>
-        <div className="flex gap-2">
-          <button
-            className="game-btn text-sm py-1"
-            onClick={saveGame}
-            disabled={isLoading}
-          >
-            Save
-          </button>
-          <button
-            className="game-btn text-sm py-1"
-            onClick={() => {
-              if (confirm('Start a new game? Current progress will be lost.')) {
-                newGame();
-              }
-            }}
-            disabled={isLoading}
-          >
-            New Game
-          </button>
-        </div>
-      </header>
-
-      {/* Error notification */}
-      {error && (
-        <div className="mb-2 px-2">
-          <div className="game-panel border-dungeon-danger bg-dungeon-danger bg-opacity-10 flex justify-between items-center py-2">
-            <span className="text-dungeon-danger text-sm">{error}</span>
-            <button
-              className="text-dungeon-muted hover:text-dungeon-text"
-              onClick={clearError}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main game layout - 3 columns */}
-      <main className="flex-1 flex gap-2 px-2 min-h-0">
-        {/* Left sidebar - Inventory and Stats */}
-        <aside className="w-64 flex-shrink-0 flex flex-col gap-2 overflow-y-auto">
-          <PlayerStats stats={gameState.player} gold={gameState.gold} />
-
-          {/* Inventory */}
-          <Inventory
-            items={gameState.inventory}
-            onUseItem={useItem}
-            isLoading={isLoading}
-          />
-
-          {/* Position display */}
-          <div className="game-panel text-xs py-2">
-            <div className="text-dungeon-muted mb-1">Location</div>
-            <div className="grid grid-cols-2 gap-x-2">
-              <span>Position:</span>
-              <span>({gameState.position[0]}, {gameState.position[1]})</span>
-              <span>Floor:</span>
-              <span>{gameState.position[2] + 1}</span>
-              <span>Biome:</span>
-              <span className="capitalize">{gameState.room.biome}</span>
-            </div>
-          </div>
-
-          {/* Game stats */}
-          <div className="game-panel text-xs py-2">
-            <div className="text-dungeon-muted mb-1">Statistics</div>
-            <div className="grid grid-cols-2 gap-x-2">
-              <span>Explored:</span>
-              <span>{gameState.stats.rooms_explored}</span>
-              <span>Defeated:</span>
-              <span>{gameState.stats.enemies_defeated}</span>
-              <span>Steps:</span>
-              <span>{gameState.stats.steps_taken}</span>
-              <span>Deaths:</span>
-              <span>{gameState.stats.deaths}</span>
-            </div>
-          </div>
-        </aside>
-
-        {/* Center - Map (larger) */}
-        <section className="flex-1 flex flex-col gap-2 min-w-0">
-          {/* Combat UI (shown when in combat) */}
-          {inCombat && gameState.combat && (
-            <Combat
-              combat={gameState.combat}
-              onAttack={attack}
-              onFlee={flee}
-              isLoading={isLoading}
-            />
-          )}
-
-          {/* Dialogue UI (shown when talking to NPC) */}
-          {dialogueData && (
-            <Dialogue
-              dialogue={dialogueData}
-              onRespond={talk}
-              onClose={clearDialogue}
-              isLoading={isLoading}
-            />
-          )}
-
-          {/* Game map - now larger */}
-          <GameMap map={gameState.room.map} className="flex-1" />
-
-          {/* Room items */}
-          {!inCombat && gameState.room.items.length > 0 && (
-            <RoomItems
-              items={gameState.room.items}
-              onTakeItem={takeItem}
-              isLoading={isLoading}
-            />
-          )}
-        </section>
-
-        {/* Right sidebar - Room info */}
-        <aside className="w-48 flex-shrink-0 flex flex-col gap-2 overflow-y-auto">
-          {/* Exits */}
-          <div className="game-panel text-sm py-2">
-            <div className="text-dungeon-muted mb-2">Exits</div>
-            <div className="grid grid-cols-3 gap-1 text-center">
-              <div></div>
-              <button
-                className={`px-2 py-1 rounded text-xs ${gameState.room.exits.north ? 'bg-dungeon-accent text-white cursor-pointer hover:bg-opacity-80' : 'bg-dungeon-panel text-dungeon-muted opacity-30'}`}
-                onClick={() => gameState.room.exits.north && move('north')}
-                disabled={!gameState.room.exits.north || isLoading}
-              >
-                N
-              </button>
-              <div></div>
-              <button
-                className={`px-2 py-1 rounded text-xs ${gameState.room.exits.west ? 'bg-dungeon-accent text-white cursor-pointer hover:bg-opacity-80' : 'bg-dungeon-panel text-dungeon-muted opacity-30'}`}
-                onClick={() => gameState.room.exits.west && move('west')}
-                disabled={!gameState.room.exits.west || isLoading}
-              >
-                W
-              </button>
-              <div className="text-dungeon-muted">+</div>
-              <button
-                className={`px-2 py-1 rounded text-xs ${gameState.room.exits.east ? 'bg-dungeon-accent text-white cursor-pointer hover:bg-opacity-80' : 'bg-dungeon-panel text-dungeon-muted opacity-30'}`}
-                onClick={() => gameState.room.exits.east && move('east')}
-                disabled={!gameState.room.exits.east || isLoading}
-              >
-                E
-              </button>
-              <div></div>
-              <button
-                className={`px-2 py-1 rounded text-xs ${gameState.room.exits.south ? 'bg-dungeon-accent text-white cursor-pointer hover:bg-opacity-80' : 'bg-dungeon-panel text-dungeon-muted opacity-30'}`}
-                onClick={() => gameState.room.exits.south && move('south')}
-                disabled={!gameState.room.exits.south || isLoading}
-              >
-                S
-              </button>
-              <div></div>
-            </div>
-            {(gameState.room.exits.up || gameState.room.exits.down) && (
-              <div className="flex gap-2 mt-2 justify-center">
-                {gameState.room.exits.up && (
-                  <button
-                    className="px-2 py-1 rounded text-xs bg-dungeon-accent text-white hover:bg-opacity-80"
-                    onClick={() => move('up')}
-                    disabled={isLoading}
-                  >
-                    ↑ Up
-                  </button>
-                )}
-                {gameState.room.exits.down && (
-                  <button
-                    className="px-2 py-1 rounded text-xs bg-dungeon-accent text-white hover:bg-opacity-80"
-                    onClick={() => move('down')}
-                    disabled={isLoading}
-                  >
-                    ↓ Down
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* NPCs in room */}
-          {gameState.room.npcs.length > 0 && (
-            <div className="game-panel text-sm py-2">
-              <div className="text-dungeon-muted mb-1">NPCs</div>
-              {gameState.room.npcs.map((npc, i) => (
-                <button
-                  key={i}
-                  className="w-full text-left px-2 py-1 rounded text-xs bg-dungeon-panel hover:bg-dungeon-accent text-yellow-400"
-                  onClick={() => talk()}
-                  disabled={isLoading}
-                >
-                  {npc}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Room features */}
-          {gameState.room.features.length > 0 && (
-            <div className="game-panel text-xs py-2">
-              <div className="text-dungeon-muted mb-1">Features</div>
-              <div className="space-y-1">
-                {gameState.room.features.map((f, i) => (
-                  <div key={i} className="capitalize text-dungeon-text">{f.replace('_', ' ')}</div>
-                ))}
-              </div>
-            </div>
-          )}
-        </aside>
-      </main>
-
-      {/* Bottom - Narrative text (full width) */}
-      <div className="mt-2 px-2">
-        <Narrative
-          text={narrative}
-          recentEvents={gameState.narrative.recent_events}
-        />
+    <div className="tui-container">
+      {/* Top status bar */}
+      <div className="tui-status">
+        <span className="text-green-400">{gameState.player.name}</span>
+        <span className="text-dungeon-muted"> │ </span>
+        <span>Lv.{gameState.player.level}</span>
+        <span className="text-dungeon-muted"> │ </span>
+        <span className="text-red-400">HP:{gameState.player.hp}/{gameState.player.max_hp}</span>
+        <span className="text-dungeon-muted"> │ </span>
+        <span className="text-blue-400">MP:{gameState.player.mana}/{gameState.player.max_mana}</span>
+        <span className="text-dungeon-muted"> │ </span>
+        <span className="text-yellow-400">Gold:{gameState.gold}</span>
+        <span className="text-dungeon-muted"> │ </span>
+        <span className="text-dungeon-muted">({gameState.position[0]},{gameState.position[1]}) F{gameState.position[2]+1}</span>
+        <span className="text-dungeon-muted"> │ </span>
+        <span className="capitalize">{gameState.room.biome}</span>
+        {isLoading && <span className="text-yellow-400 ml-4">◌ Loading...</span>}
       </div>
 
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="fixed bottom-4 right-4">
-          <div className="game-panel flex items-center gap-2 py-2 px-3">
-            <span className="spinner w-4 h-4" />
-            <span className="text-xs text-dungeon-muted">Loading...</span>
+      {/* Main content area */}
+      <div className="tui-main">
+        {/* Left panel - Stats & Inventory */}
+        <div className="tui-panel tui-left">
+          <div className="tui-section">
+            <div className="tui-header">═══ STATS ═══</div>
+            <div><span className="text-red-400">HP </span><span className="text-red-500">[{hpBar}]</span> {hpPct}%</div>
+            <div><span className="text-blue-400">MP </span><span className="text-blue-500">[{mpBar}]</span> {mpPct}%</div>
+            <div><span className="text-purple-400">XP </span><span className="text-purple-500">[{xpBar}]</span> {xpPct}%</div>
+            <div className="text-dungeon-muted mt-1">ATK:{gameState.player.attack} DEF:{gameState.player.defense}</div>
+          </div>
+
+          <div className="tui-section">
+            <div className="tui-header">═══ INVENTORY ═══</div>
+            {gameState.inventory.length === 0 ? (
+              <div className="text-dungeon-muted">  (empty)</div>
+            ) : (
+              gameState.inventory.map((item, i) => (
+                <div
+                  key={item.id}
+                  className={i === selectedItem ? 'tui-selected' : ''}
+                >
+                  {i === selectedItem ? '► ' : '  '}
+                  <span className="text-cyan-400">{item.name}</span>
+                  {item.quantity > 1 && <span className="text-dungeon-muted"> x{item.quantity}</span>}
+                </div>
+              ))
+            )}
+            <div className="text-dungeon-muted mt-1 text-xs">↑↓:select  u:use</div>
+          </div>
+
+          <div className="tui-section">
+            <div className="tui-header">═══ ROOM ═══</div>
+            <div>Exits: <span className="text-green-400">{exitStr || 'none'}</span></div>
+            {gameState.room.npcs.length > 0 && (
+              <div>NPCs: <span className="text-yellow-400">{gameState.room.npcs.join(', ')}</span></div>
+            )}
+            {gameState.room.features.length > 0 && (
+              <div className="text-dungeon-muted">{gameState.room.features.map(f => f.replace('_', ' ')).join(', ')}</div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Center - Map */}
+        <div className="tui-panel tui-center">
+          <div className="tui-map">
+            {gameState.room.map.map((row, i) => (
+              <div key={i} className="tui-map-row">
+                {row.split('').map((char, j) => (
+                  <span key={j} className={getTileClass(char)}>{char}</span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right panel - Combat/Items/Dialogue */}
+        <div className="tui-panel tui-right">
+          {/* Combat */}
+          {inCombat && gameState.combat && (
+            <div className="tui-section">
+              <div className="tui-header text-red-400">══ COMBAT ══</div>
+              <div className="text-red-400">{gameState.combat.enemy_name}</div>
+              <div>HP: {gameState.combat.enemy_hp}/{gameState.combat.enemy_max_hp}</div>
+              <div className="mt-2">
+                <div>[A] Attack</div>
+                <div>[F] Flee</div>
+              </div>
+            </div>
+          )}
+
+          {/* Dialogue */}
+          {dialogueData && (
+            <div className="tui-section">
+              <div className="tui-header text-yellow-400">══ DIALOGUE ══</div>
+              <div className="text-yellow-400">{dialogueData.npc_name}:</div>
+              <div className="text-dungeon-text mt-1">"{dialogueData.speech}"</div>
+              <div className="text-dungeon-muted mt-2">[Q] Close</div>
+            </div>
+          )}
+
+          {/* Room Items */}
+          {!inCombat && gameState.room.items.length > 0 && (
+            <div className="tui-section">
+              <div className="tui-header">═══ ITEMS ═══</div>
+              {gameState.room.items.map((item, i) => (
+                <div key={item.id}>
+                  <span className="text-dungeon-muted">[{i+1}]</span>
+                  <span className="text-cyan-400"> {item.name}</span>
+                </div>
+              ))}
+              <div className="text-dungeon-muted mt-1 text-xs">g:take  1-9:take #</div>
+            </div>
+          )}
+
+          {/* Controls Help */}
+          <div className="tui-section mt-auto">
+            <div className="tui-header">═══ KEYS ═══</div>
+            <div className="text-xs">
+              <div>WASD: Move</div>
+              <div>&lt;&gt;: Up/Down</div>
+              <div>T: Talk  R: Rest</div>
+              <div>G: Take  Q: Save</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom narrative */}
+      <div className="tui-narrative">
+        {error && <div className="text-red-400">! {error}</div>}
+        <div>{narrative}</div>
+        {gameState.narrative.recent_events.slice(-2).map((event, i) => (
+          <div key={i} className="text-dungeon-muted">{event}</div>
+        ))}
+      </div>
     </div>
   );
+}
+
+// Tile coloring
+function getTileClass(char: string): string {
+  switch (char) {
+    case '@': return 'tile-player';
+    case '&': case 'Ω': return 'tile-enemy';
+    case '☺': return 'tile-npc';
+    case '$': case '■': case '□': return 'tile-item';
+    case '▓': case '╔': case '═': case '╗': case '║': case '╚': case '╝': case '╠': case '╣': case '╬': return 'tile-wall';
+    case '░': case '.': return 'tile-floor';
+    case '≈': return 'tile-water';
+    case '~': return 'tile-lava';
+    case '+': case '/': return 'tile-door';
+    case '>': case '<': return 'tile-stairs';
+    case '^': return 'tile-trap';
+    case '◊': case '♨': return 'tile-chest';
+    default: return 'tile-floor';
+  }
 }
 
 export default App;
