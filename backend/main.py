@@ -8,7 +8,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field
@@ -18,6 +18,10 @@ from game_engine import get_game_engine, reset_game_engine
 from llm_engine import get_llm_engine
 from audio_engine import get_audio_engine
 from websocket_manager import get_websocket_manager
+from auth import (
+    AuthService, get_auth_service, User, UserCreate, UserLogin, Token,
+    get_current_user, get_current_user_optional
+)
 
 load_dotenv()
 
@@ -242,6 +246,10 @@ class SaveLoadResponse(BaseModel):
 
 tags_metadata = [
     {
+        "name": "Authentication",
+        "description": "User registration, login, and profile management",
+    },
+    {
         "name": "Health",
         "description": "API health and status endpoints",
     },
@@ -337,6 +345,98 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# =============================================================================
+# Authentication Endpoints
+# =============================================================================
+
+@app.post(
+    "/api/auth/register",
+    response_model=Token,
+    tags=["Authentication"],
+    summary="Register new user",
+    description="""Create a new user account.
+
+Username must be 3-50 characters, alphanumeric with underscores/hyphens.
+Password must be at least 6 characters.
+Returns a JWT token for immediate login."""
+)
+async def register(user_data: UserCreate):
+    """Register a new user and return auth token."""
+    auth_service = get_auth_service()
+    user = auth_service.register(user_data)
+
+    if user is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Username or email already exists"
+        )
+
+    # Auto-login after registration
+    token = auth_service.login(user_data.username, user_data.password)
+    return token
+
+
+@app.post(
+    "/api/auth/login",
+    response_model=Token,
+    tags=["Authentication"],
+    summary="Login",
+    description="Authenticate with username and password to receive a JWT token."
+)
+async def login(credentials: UserLogin):
+    """Login and receive JWT token."""
+    auth_service = get_auth_service()
+    token = auth_service.login(credentials.username, credentials.password)
+
+    if token is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password"
+        )
+
+    return token
+
+
+@app.get(
+    "/api/auth/me",
+    response_model=User,
+    tags=["Authentication"],
+    summary="Get current user",
+    description="Get the profile of the currently authenticated user."
+)
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Get current user profile."""
+    return current_user
+
+
+@app.post(
+    "/api/auth/change-password",
+    tags=["Authentication"],
+    summary="Change password",
+    description="Change the password for the current user."
+)
+async def change_password(
+    old_password: str = Query(description="Current password"),
+    new_password: str = Query(min_length=6, description="New password"),
+    current_user: User = Depends(get_current_user)
+):
+    """Change current user's password."""
+    auth_service = get_auth_service()
+    success = auth_service.change_password(
+        current_user.id,
+        old_password,
+        new_password
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Current password is incorrect"
+        )
+
+    return {"success": True, "message": "Password changed successfully"}
 
 
 # =============================================================================
@@ -456,17 +556,29 @@ async def get_game_state():
     summary="Save game",
     description="""Save the current game state to database.
 
-Optionally specify a player_id and save_name for organization.
-Multiple saves per player are supported."""
+**Authentication:** Optional. If authenticated, saves are linked to your user account.
+Anonymous saves use 'anonymous' as player_id.
+
+Multiple saves per user are supported."""
 )
 async def save_game(
-    player_id: str = Query(default="default", description="Player identifier"),
-    save_name: str = Query(default="quicksave", description="Name for the save slot")
+    save_name: str = Query(default="quicksave", description="Name for the save slot"),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Save the current game state to database."""
     try:
         engine = get_game_engine()
+
+        # Use user ID if authenticated, otherwise anonymous
+        player_id = f"user_{current_user.id}" if current_user else "anonymous"
+
         save_id = engine.save_to_database(player_id, save_name)
+
+        # Update user stats if authenticated
+        if current_user:
+            auth_service = get_auth_service()
+            auth_service.increment_games_played(current_user.id)
+
         return SaveLoadResponse(
             success=True,
             message=f"Game saved successfully (ID: {save_id})"
@@ -482,15 +594,20 @@ async def save_game(
     summary="Load game",
     description="""Load a previously saved game state from database.
 
-If save_id is not specified, loads the most recent save for the player."""
+**Authentication:** Optional. If authenticated, loads from your user saves.
+If save_id is not specified, loads the most recent save."""
 )
 async def load_game(
     save_id: Optional[int] = Query(default=None, description="Specific save ID to load"),
-    player_id: str = Query(default="default", description="Player identifier")
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Load saved game state from database."""
     try:
         engine = get_game_engine()
+
+        # Use user ID if authenticated, otherwise anonymous
+        player_id = f"user_{current_user.id}" if current_user else "anonymous"
+
         success = engine.load_from_database(save_id, player_id)
 
         if not success:
@@ -513,19 +630,27 @@ async def load_game(
     "/api/game/saves",
     tags=["Game Management"],
     summary="List saves",
-    description="List all saved games for a player."
+    description="""List all saved games for the current user.
+
+**Authentication:** Optional. If authenticated, lists your saves.
+Anonymous users see anonymous saves."""
 )
 async def list_saves(
-    player_id: str = Query(default="default", description="Player identifier")
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """List all saves for a player."""
+    """List all saves for the current user."""
     try:
         engine = get_game_engine()
+
+        # Use user ID if authenticated, otherwise anonymous
+        player_id = f"user_{current_user.id}" if current_user else "anonymous"
+
         saves = engine.list_saves(player_id)
         return {
             "success": True,
             "saves": saves,
-            "count": len(saves)
+            "count": len(saves),
+            "user": current_user.username if current_user else "anonymous"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -535,17 +660,40 @@ async def list_saves(
     "/api/game/saves/{save_id}",
     tags=["Game Management"],
     summary="Delete save",
-    description="Delete a specific saved game by ID."
+    description="""Delete a specific saved game by ID.
+
+**Authentication:** Required. You can only delete your own saves."""
 )
-async def delete_save(save_id: int):
-    """Delete a saved game."""
+async def delete_save(
+    save_id: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a saved game (requires authentication)."""
     try:
         engine = get_game_engine()
+
+        # Verify ownership by checking if save belongs to user
+        from database import get_repository
+        repo = get_repository()
+        save = repo.load_game(save_id)
+
+        if save is None:
+            raise HTTPException(status_code=404, detail="Save not found")
+
+        expected_player_id = f"user_{current_user.id}"
+        if save.player_id != expected_player_id:
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to delete this save"
+            )
+
         success = engine.delete_save(save_id)
         return {
             "success": success,
             "message": "Save deleted" if success else "Save not found"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
