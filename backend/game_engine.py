@@ -638,6 +638,21 @@ class GameEngine:
             else:
                 effect_msg = "The smoke dissipates uselessly."
 
+        elif effect_type == "light_source":
+            # Torch or other light source - adds visibility buff
+            radius = effect.get("radius", 4)
+            duration = effect.get("duration", 100)
+            light_buff = StatusEffect(
+                id="light_source",
+                name="Torch Light",
+                effect_type="buff",
+                stat_modifiers={"visibility": radius},
+                duration=duration,
+                source=effect_data["item_name"]
+            )
+            self.player.add_status_effect(light_buff)
+            effect_msg = f"The {effect_data['item_name'].lower()} flickers to life, casting warm light around you."
+
         # Record event
         x, y, z = self.world.current_position
         self.narrative.add_item_event(
