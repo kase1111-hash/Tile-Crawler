@@ -1,0 +1,225 @@
+{
+  "version": "1.0.0",
+  "description": "Glyph animation definitions for GASR system",
+  "animations": [
+    {
+      "id": "water.ripple",
+      "frames": ["U+E400", "U+EB00", "U+EB01", "U+EB02"],
+      "rate_ms": 200,
+      "loop": true,
+      "ping_pong": false
+    },
+    {
+      "id": "fire.flicker",
+      "frames": ["U+E800", "U+EB10", "U+EB11", "U+EB12", "U+EB13"],
+      "rate_ms": 100,
+      "loop": true,
+      "ping_pong": true
+    },
+    {
+      "id": "torch.flicker",
+      "frames": ["U+E504", "U+EB20", "U+EB21", "U+EB22"],
+      "rate_ms": 120,
+      "loop": true,
+      "ping_pong": true
+    },
+    {
+      "id": "lava.bubble",
+      "frames": ["U+E402", "U+EB30", "U+EB31", "U+EB32", "U+EB33"],
+      "rate_ms": 300,
+      "loop": true,
+      "ping_pong": false
+    },
+    {
+      "id": "portal.swirl",
+      "frames": ["U+E852", "U+EB40", "U+EB41", "U+EB42", "U+EB43", "U+EB44"],
+      "rate_ms": 150,
+      "loop": true,
+      "ping_pong": false
+    },
+    {
+      "id": "magic.sparkle",
+      "frames": ["U+E803", "U+EB50", "U+EB51", "U+EB52"],
+      "rate_ms": 80,
+      "loop": true,
+      "ping_pong": true
+    },
+    {
+      "id": "campfire.burn",
+      "frames": ["U+E503", "U+EB60", "U+EB61", "U+EB62"],
+      "rate_ms": 180,
+      "loop": true,
+      "ping_pong": true
+    },
+    {
+      "id": "crystal.pulse",
+      "frames": ["U+E505", "U+EB70", "U+EB71"],
+      "rate_ms": 500,
+      "loop": true,
+      "ping_pong": true
+    },
+    {
+      "id": "poison.cloud",
+      "frames": ["U+E801", "U+EB80", "U+EB81", "U+EB82"],
+      "rate_ms": 250,
+      "loop": true,
+      "ping_pong": false
+    },
+    {
+      "id": "trap.trigger",
+      "frames": ["U+E802", "U+EB90", "U+EB91", "U+EB92"],
+      "rate_ms": 50,
+      "loop": false,
+      "on_complete": "trap.reset"
+    },
+    {
+      "id": "door.open",
+      "frames": ["U+E300", "U+EBA0", "U+EBA1", "U+E301"],
+      "rate_ms": 100,
+      "loop": false,
+      "on_complete": "door.opened"
+    },
+    {
+      "id": "door.close",
+      "frames": ["U+E301", "U+EBA1", "U+EBA0", "U+E300"],
+      "rate_ms": 100,
+      "loop": false,
+      "on_complete": "door.closed"
+    },
+    {
+      "id": "chest.open",
+      "frames": ["U+E500", "U+EBB0", "U+EBB1", "U+E501"],
+      "rate_ms": 150,
+      "loop": false,
+      "on_complete": "chest.opened"
+    },
+    {
+      "id": "entity.idle",
+      "frames": ["U+E701", "U+EBC0", "U+EBC1"],
+      "rate_ms": 400,
+      "loop": true,
+      "ping_pong": true
+    },
+    {
+      "id": "entity.attack",
+      "frames": ["U+E701", "U+EBC2", "U+EBC3", "U+EBC4", "U+E701"],
+      "rate_ms": 80,
+      "loop": false,
+      "on_complete": "attack.complete"
+    },
+    {
+      "id": "entity.hit",
+      "frames": ["U+E701", "U+EBC5", "U+EBC6", "U+E701"],
+      "rate_ms": 60,
+      "loop": false,
+      "on_complete": "hit.complete"
+    },
+    {
+      "id": "entity.death",
+      "frames": ["U+E701", "U+EBC7", "U+EBC8", "U+EBC9", "U+E000"],
+      "rate_ms": 150,
+      "loop": false,
+      "on_complete": "entity.removed"
+    },
+    {
+      "id": "player.walk",
+      "frames": ["U+E700", "U+EBD0", "U+EBD1"],
+      "rate_ms": 150,
+      "loop": true,
+      "ping_pong": true
+    },
+    {
+      "id": "player.attack",
+      "frames": ["U+E700", "U+EBD2", "U+EBD3", "U+E700"],
+      "rate_ms": 100,
+      "loop": false,
+      "on_complete": "player.attack.complete"
+    },
+    {
+      "id": "item.pickup",
+      "frames": ["U+E600", "U+EBE0", "U+EBE1", "U+E000"],
+      "rate_ms": 100,
+      "loop": false,
+      "on_complete": "item.collected"
+    },
+    {
+      "id": "gold.shine",
+      "frames": ["U+E600", "U+EBE2", "U+EBE3", "U+E600"],
+      "rate_ms": 300,
+      "loop": true,
+      "ping_pong": false
+    }
+  ],
+  "frame_glyphs": [
+    {
+      "id": "anim.water.1",
+      "codepoint": "U+EB00",
+      "char": "~",
+      "name": "Water Frame 1",
+      "category": "animation"
+    },
+    {
+      "id": "anim.water.2",
+      "codepoint": "U+EB01",
+      "char": "≈",
+      "name": "Water Frame 2",
+      "category": "animation"
+    },
+    {
+      "id": "anim.water.3",
+      "codepoint": "U+EB02",
+      "char": "~",
+      "name": "Water Frame 3",
+      "category": "animation"
+    },
+    {
+      "id": "anim.fire.1",
+      "codepoint": "U+EB10",
+      "char": "^",
+      "name": "Fire Frame 1",
+      "category": "animation"
+    },
+    {
+      "id": "anim.fire.2",
+      "codepoint": "U+EB11",
+      "char": "▲",
+      "name": "Fire Frame 2",
+      "category": "animation"
+    },
+    {
+      "id": "anim.fire.3",
+      "codepoint": "U+EB12",
+      "char": "△",
+      "name": "Fire Frame 3",
+      "category": "animation"
+    },
+    {
+      "id": "anim.fire.4",
+      "codepoint": "U+EB13",
+      "char": "^",
+      "name": "Fire Frame 4",
+      "category": "animation"
+    },
+    {
+      "id": "anim.torch.1",
+      "codepoint": "U+EB20",
+      "char": "τ",
+      "name": "Torch Frame 1",
+      "category": "animation"
+    },
+    {
+      "id": "anim.torch.2",
+      "codepoint": "U+EB21",
+      "char": "†",
+      "name": "Torch Frame 2",
+      "category": "animation"
+    },
+    {
+      "id": "anim.torch.3",
+      "codepoint": "U+EB22",
+      "char": "τ",
+      "name": "Torch Frame 3",
+      "category": "animation"
+    }
+  ]
+}
