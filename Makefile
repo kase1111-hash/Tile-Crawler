@@ -1,4 +1,4 @@
-.PHONY: help build up down logs clean test dev backend-shell frontend-shell
+.PHONY: help build up down logs clean test test-e2e dev backend-shell frontend-shell
 
 # Default target
 help:
@@ -10,6 +10,8 @@ help:
 	@echo "  make logs         - View service logs"
 	@echo "  make clean        - Remove containers, images, and volumes"
 	@echo "  make test         - Run backend tests"
+	@echo "  make test-e2e     - Run E2E tests (Playwright)"
+	@echo "  make test-all     - Run all tests"
 	@echo "  make dev          - Start development environment"
 	@echo "  make backend-shell  - Open shell in backend container"
 	@echo "  make frontend-shell - Open shell in frontend container"
@@ -47,9 +49,20 @@ clean:
 	docker-compose down -v --rmi local
 	docker system prune -f
 
-# Run tests
+# Run backend tests
 test:
 	cd backend && python -m pytest tests/ -v
+
+# Run E2E tests (requires backend and frontend running)
+test-e2e:
+	cd frontend && npm run test:e2e
+
+# Run E2E tests with UI
+test-e2e-ui:
+	cd frontend && npm run test:e2e:ui
+
+# Run all tests
+test-all: test test-e2e
 
 # Development mode with hot-reload
 dev:

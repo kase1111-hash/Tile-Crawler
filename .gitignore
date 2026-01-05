@@ -52,3 +52,8 @@ Thumbs.db
 # Game state files (generated at runtime)
 backend/*.json
 !backend/tests/*.json
+
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+frontend/playwright/.cache/
