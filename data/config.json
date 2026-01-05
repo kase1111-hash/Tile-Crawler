@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "description": "Game configuration for Tile-Crawler",
+  "game": {
+    "title": "Tile-Crawler",
+    "subtitle": "An LLM-Powered Dungeon Crawler",
+    "version": "0.1.0",
+    "default_difficulty": "normal"
+  },
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "fallback_model": "gpt-3.5-turbo",
+    "temperature": {
+      "exploration": 0.7,
+      "combat": 0.5,
+      "dialogue": 0.8,
+      "description": 0.9
+    },
+    "max_tokens": {
+      "room_generation": 500,
+      "dialogue": 300,
+      "combat_narration": 200,
+      "item_description": 100
+    },
+    "context_window": 8000,
+    "retry_attempts": 3,
+    "retry_delay_ms": 1000
+  },
+  "memory": {
+    "narrative_log_size": 10,
+    "world_cache_size": 50,
+    "summary_threshold": 20,
+    "persist_interval_seconds": 30
+  },
+  "player": {
+    "starting_hp": 100,
+    "starting_mana": 50,
+    "starting_inventory": ["torch", "healing_potion"],
+    "starting_gold": 20,
+    "base_attack": 5,
+    "base_defense": 5,
+    "base_speed": 5,
+    "inventory_slots": 20,
+    "level_up_hp_bonus": 10,
+    "level_up_mana_bonus": 5,
+    "xp_scaling": {
+      "base": 100,
+      "multiplier": 1.5
+    }
+  },
+  "combat": {
+    "turn_based": true,
+    "initiative_uses_speed": true,
+    "critical_hit_chance": 5,
+    "critical_hit_multiplier": 2.0,
+    "miss_chance": 5,
+    "flee_base_chance": 50,
+    "flee_speed_bonus": 5,
+    "death_penalty": "drop_gold_percentage",
+    "death_gold_loss_percent": 25,
+    "respawn_location": "last_safe_room"
+  },
+  "difficulty": {
+    "easy": {
+      "enemy_hp_multiplier": 0.75,
+      "enemy_damage_multiplier": 0.75,
+      "xp_multiplier": 1.25,
+      "gold_multiplier": 1.5,
+      "trap_damage_multiplier": 0.5
+    },
+    "normal": {
+      "enemy_hp_multiplier": 1.0,
+      "enemy_damage_multiplier": 1.0,
+      "xp_multiplier": 1.0,
+      "gold_multiplier": 1.0,
+      "trap_damage_multiplier": 1.0
+    },
+    "hard": {
+      "enemy_hp_multiplier": 1.5,
+      "enemy_damage_multiplier": 1.5,
+      "xp_multiplier": 0.75,
+      "gold_multiplier": 0.75,
+      "trap_damage_multiplier": 1.5
+    },
+    "nightmare": {
+      "enemy_hp_multiplier": 2.0,
+      "enemy_damage_multiplier": 2.0,
+      "xp_multiplier": 0.5,
+      "gold_multiplier": 0.5,
+      "trap_damage_multiplier": 2.0,
+      "permadeath": true
+    }
+  },
+  "world_generation": {
+    "room_generation_ahead": 2,
+    "max_dungeon_depth": 10,
+    "min_rooms_per_floor": 8,
+    "max_rooms_per_floor": 15,
+    "enemy_density": {
+      "easy": 0.3,
+      "normal": 0.5,
+      "hard": 0.7
+    },
+    "treasure_density": 0.2,
+    "trap_density": 0.15,
+    "npc_spawn_chance": 0.1,
+    "safe_room_frequency": 8,
+    "boss_room_frequency": 5
+  },
+  "display": {
+    "map_width": 15,
+    "map_height": 11,
+    "font_family": "DungeonTiles, monospace",
+    "font_size": "24px",
+    "line_height": 1.0,
+    "colors": {
+      "wall": "#4a4a4a",
+      "floor": "#2a2a2a",
+      "player": "#00ff00",
+      "enemy": "#ff0000",
+      "npc": "#ffff00",
+      "item": "#00ffff",
+      "water": "#0066ff",
+      "lava": "#ff6600",
+      "door": "#8b4513",
+      "stairs": "#ffffff"
+    },
+    "animation": {
+      "enabled": true,
+      "move_duration_ms": 150,
+      "attack_flash_ms": 100,
+      "damage_shake_ms": 200
+    }
+  },
+  "audio": {
+    "enabled": false,
+    "music_volume": 0.5,
+    "sfx_volume": 0.7,
+    "ambient_volume": 0.3
+  },
+  "controls": {
+    "keyboard": {
+      "north": ["w", "ArrowUp"],
+      "south": ["s", "ArrowDown"],
+      "east": ["d", "ArrowRight"],
+      "west": ["a", "ArrowLeft"],
+      "action": ["e", "Enter"],
+      "inventory": ["i"],
+      "map": ["m"],
+      "quest_log": ["q"],
+      "pause": ["Escape"]
+    },
+    "touch": {
+      "swipe_threshold": 50,
+      "tap_action": true
+    }
+  },
+  "api": {
+    "base_url": "http://127.0.0.1:8000",
+    "endpoints": {
+      "game_state": "/api/game/state",
+      "action": "/api/game/action",
+      "save": "/api/game/save",
+      "load": "/api/game/load",
+      "new_game": "/api/game/new"
+    },
+    "timeout_ms": 30000
+  },
+  "persistence": {
+    "autosave": true,
+    "autosave_interval_seconds": 60,
+    "max_save_slots": 5,
+    "storage_type": "local",
+    "file_paths": {
+      "world_state": "world_state.json",
+      "narrative_memory": "narrative_memory.json",
+      "inventory_state": "inventory_state.json",
+      "player_state": "player_state.json"
+    }
+  },
+  "prompts": {
+    "system_prompt": "You are the Dungeon Master for Tile-Crawler, an AI-powered roguelike. Generate atmospheric, consistent dungeon content. Maintain narrative continuity. Output valid JSON matching the specified schemas. Be creative but coherent.",
+    "room_generation_template": "Generate a {biome} room at coordinates ({x}, {y}). Exits available: {exits}. Player inventory: {inventory}. Recent events: {recent_events}. Respond with a JSON object containing 'map', 'description', 'enemies', 'items', and 'special_features'.",
+    "dialogue_template": "The player speaks to {npc_name} ({npc_personality}). Context: {context}. Player says: {player_input}. Generate the NPC's response maintaining their personality and providing useful information.",
+    "combat_template": "Narrate the combat turn. Player uses {action} against {enemy_name}. Player stats: {player_stats}. Enemy stats: {enemy_stats}. Result: {outcome}. Generate dramatic, concise narration."
+  },
+  "debug": {
+    "enabled": false,
+    "show_coordinates": false,
+    "show_enemy_hp": false,
+    "show_item_ids": false,
+    "log_llm_requests": false,
+    "log_llm_responses": false,
+    "invincible": false,
+    "infinite_gold": false,
+    "reveal_map": false
+  }
+}

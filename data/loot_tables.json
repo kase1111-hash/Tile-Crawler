@@ -1,0 +1,432 @@
+{
+  "version": "1.0.0",
+  "description": "Loot table definitions for Tile-Crawler",
+  "drop_mechanics": {
+    "base_drop_chance": 100,
+    "nothing_weight": 20,
+    "luck_modifier_per_point": 2,
+    "boss_guaranteed_drops": true,
+    "chest_type_by_rarity": {
+      "wooden": {"common": 70, "uncommon": 25, "rare": 5},
+      "iron": {"common": 40, "uncommon": 45, "rare": 14, "epic": 1},
+      "gold": {"common": 10, "uncommon": 30, "rare": 45, "epic": 14, "legendary": 1},
+      "mythic": {"rare": 30, "epic": 50, "legendary": 20}
+    }
+  },
+  "loot_tables": {
+    "giant_rat_loot": {
+      "id": "giant_rat_loot",
+      "name": "Giant Rat Drops",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 60},
+        {"item_id": "gold_coins", "weight": 25, "quantity": [1, 5]},
+        {"item_id": "rat_tail", "weight": 10},
+        {"item_id": "healing_potion", "weight": 5}
+      ]
+    },
+    "spider_loot": {
+      "id": "spider_loot",
+      "name": "Cave Spider Drops",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 50},
+        {"item_id": "gold_coins", "weight": 20, "quantity": [2, 8]},
+        {"item_id": "spider_silk", "weight": 15},
+        {"item_id": "poison_vial", "weight": 10},
+        {"item_id": "antidote", "weight": 5}
+      ]
+    },
+    "skeleton_loot": {
+      "id": "skeleton_loot",
+      "name": "Skeleton Warrior Drops",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 30},
+        {"item_id": "gold_coins", "weight": 30, "quantity": [5, 15]},
+        {"item_id": "rusty_sword", "weight": 15},
+        {"item_id": "bone_fragment", "weight": 15},
+        {"item_id": "iron_sword", "weight": 8},
+        {"item_id": "healing_potion", "weight": 2}
+      ]
+    },
+    "zombie_loot": {
+      "id": "zombie_loot",
+      "name": "Zombie Drops",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 40},
+        {"item_id": "gold_coins", "weight": 25, "quantity": [3, 10]},
+        {"item_id": "rotting_flesh", "weight": 20},
+        {"item_id": "tattered_cloth", "weight": 10},
+        {"item_id": "antidote", "weight": 5}
+      ]
+    },
+    "goblin_loot": {
+      "id": "goblin_loot",
+      "name": "Goblin Drops",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 35},
+        {"item_id": "gold_coins", "weight": 35, "quantity": [3, 12]},
+        {"item_id": "lockpick", "weight": 15},
+        {"item_id": "rusty_sword", "weight": 10},
+        {"item_id": "smoke_bomb", "weight": 5}
+      ]
+    },
+    "shaman_loot": {
+      "id": "shaman_loot",
+      "name": "Goblin Shaman Drops",
+      "rolls": 2,
+      "guaranteed": ["gold_coins"],
+      "items": [
+        {"item_id": "gold_coins", "weight": 0, "quantity": [20, 50]},
+        {"item_id": "mana_potion", "weight": 30},
+        {"item_id": "scroll_light", "weight": 25},
+        {"item_id": "soul_gem", "weight": 15},
+        {"item_id": "staff_of_flames", "weight": 5},
+        {"item_id": "wooden_staff", "weight": 25}
+      ]
+    },
+    "orc_loot": {
+      "id": "orc_loot",
+      "name": "Orc Warrior Drops",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 20},
+        {"item_id": "gold_coins", "weight": 35, "quantity": [10, 25]},
+        {"item_id": "iron_sword", "weight": 20},
+        {"item_id": "leather_armor", "weight": 15},
+        {"item_id": "healing_potion", "weight": 8},
+        {"item_id": "elixir_of_strength", "weight": 2}
+      ]
+    },
+    "wraith_loot": {
+      "id": "wraith_loot",
+      "name": "Wraith Drops",
+      "rolls": 2,
+      "items": [
+        {"item_id": "soul_gem", "weight": 40},
+        {"item_id": "gold_coins", "weight": 25, "quantity": [15, 40]},
+        {"item_id": "ghost_essence", "weight": 20},
+        {"item_id": "scroll_teleport", "weight": 10},
+        {"item_id": "shadow_cloak", "weight": 5}
+      ]
+    },
+    "mimic_loot": {
+      "id": "mimic_loot",
+      "name": "Mimic Drops",
+      "rolls": 3,
+      "guaranteed": ["gold_coins"],
+      "items": [
+        {"item_id": "gold_coins", "weight": 0, "quantity": [50, 100]},
+        {"item_id": "rare_gem", "weight": 30},
+        {"item_id": "healing_potion", "weight": 25},
+        {"item_id": "greater_healing_potion", "weight": 15},
+        {"item_id": "silver_blade", "weight": 10},
+        {"item_id": "mimic_tooth", "weight": 20}
+      ]
+    },
+    "golem_loot": {
+      "id": "golem_loot",
+      "name": "Stone Golem Drops",
+      "rolls": 2,
+      "items": [
+        {"item_id": "gold_coins", "weight": 30, "quantity": [30, 60]},
+        {"item_id": "stone_core", "weight": 35},
+        {"item_id": "rare_gem", "weight": 20},
+        {"item_id": "plate_armor", "weight": 10},
+        {"item_id": "tower_shield", "weight": 5}
+      ]
+    },
+    "cultist_loot": {
+      "id": "cultist_loot",
+      "name": "Dark Cultist Drops",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 25},
+        {"item_id": "gold_coins", "weight": 30, "quantity": [8, 20]},
+        {"item_id": "dark_tome_page", "weight": 20},
+        {"item_id": "mana_potion", "weight": 15},
+        {"item_id": "scroll_fireball", "weight": 8},
+        {"item_id": "soul_gem", "weight": 2}
+      ]
+    },
+    "demon_loot": {
+      "id": "demon_loot",
+      "name": "Lesser Demon Drops",
+      "rolls": 2,
+      "guaranteed": ["demon_essence"],
+      "items": [
+        {"item_id": "demon_essence", "weight": 0},
+        {"item_id": "gold_coins", "weight": 35, "quantity": [25, 60]},
+        {"item_id": "soul_gem", "weight": 25},
+        {"item_id": "flame_tongue", "weight": 10},
+        {"item_id": "greater_healing_potion", "weight": 20},
+        {"item_id": "scroll_fireball", "weight": 10}
+      ]
+    },
+    "vampire_loot": {
+      "id": "vampire_loot",
+      "name": "Vampire Drops",
+      "rolls": 4,
+      "guaranteed": ["gold_coins", "rare_gem"],
+      "items": [
+        {"item_id": "gold_coins", "weight": 0, "quantity": [100, 250]},
+        {"item_id": "rare_gem", "weight": 0},
+        {"item_id": "vampire_fang", "weight": 35},
+        {"item_id": "blood_vial", "weight": 30},
+        {"item_id": "shadow_cloak", "weight": 15},
+        {"item_id": "silver_blade", "weight": 15},
+        {"item_id": "ancient_key", "weight": 5}
+      ]
+    },
+    "ancient_dragon_loot": {
+      "id": "ancient_dragon_loot",
+      "name": "Ancient Dragon Hoard",
+      "rolls": 6,
+      "guaranteed": ["dragon_scale", "gold_coins", "rare_gem"],
+      "items": [
+        {"item_id": "dragon_scale", "weight": 0},
+        {"item_id": "gold_coins", "weight": 0, "quantity": [500, 1000]},
+        {"item_id": "rare_gem", "weight": 0},
+        {"item_id": "dragon_scale", "weight": 30},
+        {"item_id": "flame_tongue", "weight": 25},
+        {"item_id": "vorpal_blade", "weight": 10},
+        {"item_id": "crown_of_the_depths", "weight": 5},
+        {"item_id": "greater_healing_potion", "weight": 20},
+        {"item_id": "scroll_teleport", "weight": 10}
+      ]
+    },
+    "assassin_loot": {
+      "id": "assassin_loot",
+      "name": "Shadow Assassin Drops",
+      "rolls": 2,
+      "items": [
+        {"item_id": "gold_coins", "weight": 30, "quantity": [20, 45]},
+        {"item_id": "poison_vial", "weight": 30},
+        {"item_id": "smoke_bomb", "weight": 25},
+        {"item_id": "lockpick", "weight": 20, "quantity": [2, 5]},
+        {"item_id": "shadow_cloak", "weight": 10},
+        {"item_id": "assassin_blade", "weight": 5}
+      ]
+    },
+    "eldritch_loot": {
+      "id": "eldritch_loot",
+      "name": "Eldritch Horror Remains",
+      "rolls": 5,
+      "guaranteed": ["void_essence", "crown_of_the_depths"],
+      "items": [
+        {"item_id": "void_essence", "weight": 0},
+        {"item_id": "crown_of_the_depths", "weight": 0},
+        {"item_id": "gold_coins", "weight": 25, "quantity": [300, 700]},
+        {"item_id": "soul_gem", "weight": 30, "quantity": [2, 5]},
+        {"item_id": "rare_gem", "weight": 25, "quantity": [2, 4]},
+        {"item_id": "scroll_teleport", "weight": 20},
+        {"item_id": "vorpal_blade", "weight": 15},
+        {"item_id": "eldritch_tome", "weight": 10}
+      ]
+    },
+    "slime_loot": {
+      "id": "slime_loot",
+      "name": "Slime Residue",
+      "rolls": 1,
+      "items": [
+        {"item_id": "nothing", "weight": 60},
+        {"item_id": "slime_residue", "weight": 30},
+        {"item_id": "gold_coins", "weight": 8, "quantity": [1, 3]},
+        {"item_id": "rare_gem", "weight": 2}
+      ]
+    },
+    "elemental_loot": {
+      "id": "elemental_loot",
+      "name": "Elemental Core",
+      "rolls": 2,
+      "guaranteed": ["elemental_core"],
+      "items": [
+        {"item_id": "elemental_core", "weight": 0},
+        {"item_id": "gold_coins", "weight": 35, "quantity": [20, 50]},
+        {"item_id": "soul_gem", "weight": 25},
+        {"item_id": "scroll_fireball", "weight": 25},
+        {"item_id": "staff_of_flames", "weight": 15}
+      ]
+    },
+    "wooden_chest": {
+      "id": "wooden_chest",
+      "name": "Wooden Chest",
+      "rolls": 2,
+      "items": [
+        {"item_id": "gold_coins", "weight": 40, "quantity": [5, 20]},
+        {"item_id": "healing_potion", "weight": 25},
+        {"item_id": "torch", "weight": 20, "quantity": [1, 3]},
+        {"item_id": "lockpick", "weight": 10},
+        {"item_id": "antidote", "weight": 5}
+      ]
+    },
+    "iron_chest": {
+      "id": "iron_chest",
+      "name": "Iron Chest",
+      "rolls": 3,
+      "items": [
+        {"item_id": "gold_coins", "weight": 35, "quantity": [15, 50]},
+        {"item_id": "greater_healing_potion", "weight": 20},
+        {"item_id": "iron_sword", "weight": 15},
+        {"item_id": "chainmail", "weight": 12},
+        {"item_id": "scroll_light", "weight": 10},
+        {"item_id": "rare_gem", "weight": 8}
+      ]
+    },
+    "gold_chest": {
+      "id": "gold_chest",
+      "name": "Gold Chest",
+      "rolls": 4,
+      "items": [
+        {"item_id": "gold_coins", "weight": 30, "quantity": [50, 150]},
+        {"item_id": "rare_gem", "weight": 25},
+        {"item_id": "silver_blade", "weight": 15},
+        {"item_id": "plate_armor", "weight": 12},
+        {"item_id": "scroll_fireball", "weight": 10},
+        {"item_id": "soul_gem", "weight": 8}
+      ]
+    },
+    "mythic_chest": {
+      "id": "mythic_chest",
+      "name": "Mythic Chest",
+      "rolls": 5,
+      "guaranteed": ["rare_gem"],
+      "items": [
+        {"item_id": "rare_gem", "weight": 0},
+        {"item_id": "gold_coins", "weight": 25, "quantity": [100, 300]},
+        {"item_id": "vorpal_blade", "weight": 15},
+        {"item_id": "shadow_cloak", "weight": 15},
+        {"item_id": "flame_tongue", "weight": 15},
+        {"item_id": "crown_of_the_depths", "weight": 5},
+        {"item_id": "scroll_teleport", "weight": 15},
+        {"item_id": "soul_gem", "weight": 10, "quantity": [2, 4]}
+      ]
+    },
+    "altar_offering": {
+      "id": "altar_offering",
+      "name": "Altar Blessing",
+      "rolls": 1,
+      "items": [
+        {"item_id": "blessing_health", "weight": 30},
+        {"item_id": "blessing_strength", "weight": 25},
+        {"item_id": "blessing_protection", "weight": 25},
+        {"item_id": "curse_weakness", "weight": 10},
+        {"item_id": "curse_misfortune", "weight": 10}
+      ]
+    },
+    "corpse_search": {
+      "id": "corpse_search",
+      "name": "Fallen Adventurer",
+      "rolls": 2,
+      "items": [
+        {"item_id": "nothing", "weight": 20},
+        {"item_id": "gold_coins", "weight": 30, "quantity": [5, 30]},
+        {"item_id": "healing_potion", "weight": 20},
+        {"item_id": "dungeon_map_fragment", "weight": 15},
+        {"item_id": "torch", "weight": 10},
+        {"item_id": "last_will", "weight": 5}
+      ]
+    }
+  },
+  "crafting_materials": {
+    "rat_tail": {
+      "id": "rat_tail",
+      "name": "Rat Tail",
+      "description": "A severed rodent tail. Some alchemists find uses for these.",
+      "category": "material",
+      "rarity": "common",
+      "base_value": 1
+    },
+    "spider_silk": {
+      "id": "spider_silk",
+      "name": "Spider Silk",
+      "description": "Strong, sticky webbing from a cave spider.",
+      "category": "material",
+      "rarity": "common",
+      "base_value": 5
+    },
+    "bone_fragment": {
+      "id": "bone_fragment",
+      "name": "Bone Fragment",
+      "description": "A piece of animated skeleton, still faintly glowing.",
+      "category": "material",
+      "rarity": "common",
+      "base_value": 3
+    },
+    "rotting_flesh": {
+      "id": "rotting_flesh",
+      "name": "Rotting Flesh",
+      "description": "Disgusting but useful for certain dark recipes.",
+      "category": "material",
+      "rarity": "common",
+      "base_value": 1
+    },
+    "ghost_essence": {
+      "id": "ghost_essence",
+      "name": "Ghost Essence",
+      "description": "The captured essence of a spirit, cold to the touch.",
+      "category": "material",
+      "rarity": "rare",
+      "base_value": 75
+    },
+    "mimic_tooth": {
+      "id": "mimic_tooth",
+      "name": "Mimic Tooth",
+      "description": "A razor-sharp tooth from a mimic's maw.",
+      "category": "material",
+      "rarity": "uncommon",
+      "base_value": 25
+    },
+    "stone_core": {
+      "id": "stone_core",
+      "name": "Stone Core",
+      "description": "The magical heart of a stone golem.",
+      "category": "material",
+      "rarity": "rare",
+      "base_value": 100
+    },
+    "demon_essence": {
+      "id": "demon_essence",
+      "name": "Demon Essence",
+      "description": "Burning hot demonic energy in crystallized form.",
+      "category": "material",
+      "rarity": "rare",
+      "base_value": 150
+    },
+    "vampire_fang": {
+      "id": "vampire_fang",
+      "name": "Vampire Fang",
+      "description": "A fang from an undead lord, still sharp.",
+      "category": "material",
+      "rarity": "epic",
+      "base_value": 200
+    },
+    "void_essence": {
+      "id": "void_essence",
+      "name": "Void Essence",
+      "description": "A piece of nothing, somehow contained. Looking at it hurts.",
+      "category": "material",
+      "rarity": "legendary",
+      "base_value": 500
+    },
+    "elemental_core": {
+      "id": "elemental_core",
+      "name": "Elemental Core",
+      "description": "The heart of an elemental, pulsing with pure energy.",
+      "category": "material",
+      "rarity": "rare",
+      "base_value": 125
+    },
+    "slime_residue": {
+      "id": "slime_residue",
+      "name": "Slime Residue",
+      "description": "Acidic goop that might be useful for... something.",
+      "category": "material",
+      "rarity": "common",
+      "base_value": 2
+    }
+  }
+}

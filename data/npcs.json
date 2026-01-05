@@ -1,0 +1,359 @@
+{
+  "version": "1.0.0",
+  "description": "NPC definitions for Tile-Crawler",
+  "personalities": {
+    "friendly": {
+      "traits": ["helpful", "warm", "trusting"],
+      "tone": "welcoming and supportive",
+      "disposition_default": 50
+    },
+    "mysterious": {
+      "traits": ["cryptic", "knowledgeable", "aloof"],
+      "tone": "enigmatic and vague",
+      "disposition_default": 30
+    },
+    "grumpy": {
+      "traits": ["irritable", "blunt", "impatient"],
+      "tone": "short and dismissive",
+      "disposition_default": 20
+    },
+    "merchant": {
+      "traits": ["shrewd", "opportunistic", "chatty"],
+      "tone": "business-minded but personable",
+      "disposition_default": 40
+    },
+    "scholar": {
+      "traits": ["curious", "verbose", "distracted"],
+      "tone": "academic and detailed",
+      "disposition_default": 35
+    },
+    "guardian": {
+      "traits": ["stoic", "dutiful", "protective"],
+      "tone": "formal and serious",
+      "disposition_default": 25
+    },
+    "trickster": {
+      "traits": ["playful", "deceptive", "charismatic"],
+      "tone": "whimsical and misleading",
+      "disposition_default": 30
+    },
+    "fearful": {
+      "traits": ["anxious", "paranoid", "skittish"],
+      "tone": "nervous and hesitant",
+      "disposition_default": 15
+    }
+  },
+  "npcs": {
+    "old_hermit": {
+      "id": "old_hermit",
+      "name": "Old Hermit",
+      "title": "The Hermit of the Depths",
+      "personality": "mysterious",
+      "description": "A weathered old man wrapped in tattered robes, his eyes gleaming with hidden knowledge",
+      "appearance": "Hunched figure with a long grey beard, clutching a gnarled staff",
+      "location_preference": ["dungeon_entrance", "cave", "ruins"],
+      "dialogue": {
+        "greeting": [
+          "Ah, another soul drawn to the depths...",
+          "The shadows whisper of your coming, traveler.",
+          "Few find this place. Fewer still leave it."
+        ],
+        "quest_hint": [
+          "The ancient ones left more than bones in these halls.",
+          "Follow the glyphs, they tell a story of power... and doom.",
+          "There is a key, hidden where light fears to tread."
+        ],
+        "farewell": [
+          "May the darkness guide your path.",
+          "We shall meet again, in this life or the next.",
+          "The depths remember all who enter..."
+        ],
+        "item_comment": {
+          "torch": "Light... a fragile thing in these depths.",
+          "ancient_key": "You found it! But beware what doors you open.",
+          "healing_potion": "Wise to carry remedies. The dungeon shows no mercy."
+        }
+      },
+      "quests": ["hermit_wisdom", "ancient_relic"],
+      "trades": false,
+      "hostile_threshold": -50
+    },
+    "wandering_merchant": {
+      "id": "wandering_merchant",
+      "name": "Valdris",
+      "title": "The Wandering Merchant",
+      "personality": "merchant",
+      "description": "A portly man with a massive pack, somehow navigating the dungeon's perils",
+      "appearance": "Rotund figure in travel-worn clothes, pack overflowing with trinkets and wares",
+      "location_preference": ["safe_room", "crossroads", "camp"],
+      "dialogue": {
+        "greeting": [
+          "Ah, a customer! Even here, commerce finds a way!",
+          "Welcome, welcome! Valdris has what you need!",
+          "Good fortune smiles! A living buyer!"
+        ],
+        "trade_prompt": [
+          "Care to see my wares? Fair prices, considering the locale!",
+          "I've got potions, torches, the occasional curiosity...",
+          "Every item guaranteed mostly non-cursed!"
+        ],
+        "no_gold": [
+          "Come back when your pockets jingle, friend!",
+          "Credit? In a dungeon? Ha!",
+          "Alas, goodwill doesn't keep my pack full."
+        ],
+        "farewell": [
+          "Safe travels! And remember where to find me!",
+          "May your pockets grow heavy with loot!",
+          "Until we meet again, adventurer!"
+        ],
+        "item_comment": {
+          "rare_gem": "Oho! Now THAT has value! Interested in selling?",
+          "cursed_item": "Ah... I recognize that aura. Keep it, friend.",
+          "empty_bottle": "I'll take those off your hands. Always need bottles."
+        }
+      },
+      "trades": true,
+      "inventory": ["healing_potion", "torch", "rope", "antidote", "scroll_light"],
+      "price_modifier": 1.5,
+      "hostile_threshold": -80
+    },
+    "lost_knight": {
+      "id": "lost_knight",
+      "name": "Sir Aldric",
+      "title": "The Lost Knight",
+      "personality": "guardian",
+      "description": "A knight in battered armor, haunted eyes telling of battles lost",
+      "appearance": "Tall figure in dented plate armor, bearing the faded crest of a forgotten order",
+      "location_preference": ["guard_post", "throne_room", "armory"],
+      "dialogue": {
+        "greeting": [
+          "Hold. State your purpose in these halls.",
+          "Another adventurer... I've seen too many fall.",
+          "You bear no mark of the enemy. That is something."
+        ],
+        "backstory": [
+          "I was sworn to protect this place, once. Before the fall.",
+          "My brothers fell one by one. I alone remain.",
+          "The darkness took everything. But duty remains."
+        ],
+        "quest_hint": [
+          "The throne room holds what we guarded. And what destroyed us.",
+          "If you seek the depths, you'll need more than steel.",
+          "There is a vault. The key was broken into three."
+        ],
+        "farewell": [
+          "Fight with honor, even here.",
+          "May your blade stay sharp and your resolve sharper.",
+          "I will hold this post until the end."
+        ]
+      },
+      "quests": ["knights_honor", "find_the_vault"],
+      "can_join_party": true,
+      "combat_stats": {
+        "hp": 80,
+        "attack": 15,
+        "defense": 20
+      },
+      "hostile_threshold": -30
+    },
+    "dungeon_spirit": {
+      "id": "dungeon_spirit",
+      "name": "The Whisper",
+      "title": "Voice of the Dungeon",
+      "personality": "mysterious",
+      "description": "A translucent apparition, flickering between visibility",
+      "appearance": "Ghostly humanoid form, features constantly shifting, voice echoing from everywhere",
+      "location_preference": ["any"],
+      "dialogue": {
+        "greeting": [
+          "You hear... us...",
+          "The stones remember. We remember.",
+          "Flesh and blood, walking our halls..."
+        ],
+        "lore": [
+          "This place was temple, then tomb, then... something else.",
+          "The builders sought to contain what they found. They failed.",
+          "We are what remains of those who stayed too long."
+        ],
+        "warning": [
+          "The deeper paths are hungry.",
+          "Do not wake what sleeps in the dark.",
+          "Some doors should remain closed."
+        ],
+        "farewell": [
+          "We will be watching...",
+          "The walls have eyes. All of them ours.",
+          "Return to the light while you can..."
+        ]
+      },
+      "quests": ["spirit_release"],
+      "trades": false,
+      "corporeal": false,
+      "hostile_threshold": -100
+    },
+    "goblin_trader": {
+      "id": "goblin_trader",
+      "name": "Skrix",
+      "title": "The Skulker",
+      "personality": "trickster",
+      "description": "A hunched goblin with shifty eyes and too many pouches",
+      "appearance": "Small green-skinned creature with oversized ears and a toothy grin",
+      "location_preference": ["hidden_alcove", "treasure_room", "crossroads"],
+      "dialogue": {
+        "greeting": [
+          "Hsss! You not kill Skrix, yes? Skrix has deals!",
+          "Big one! Skrix friend! Best friend! Has shinies!",
+          "No stab! No stab! Skrix is merchant, not food!"
+        ],
+        "trade_prompt": [
+          "Skrix has things! Good things! Mostly good things!",
+          "You want map? Key? Skrix knows where things hide!",
+          "Trade? Trade! Skrix loves trade!"
+        ],
+        "secrets": [
+          "Skrix knows secret way... for price.",
+          "Big monster sleeps three halls down. Skrix knows safe path.",
+          "Shiny thing in water room! But water room has teeth..."
+        ],
+        "farewell": [
+          "Skrix remembers friends! Come back!",
+          "Good trades! Skrix tells others you nice!",
+          "Bye bye! Don't die!"
+        ]
+      },
+      "trades": true,
+      "inventory": ["lockpick", "smoke_bomb", "dungeon_map_fragment", "poison_vial"],
+      "price_modifier": 0.8,
+      "special_trades": {
+        "information": ["secret_passage_location", "trap_warnings", "enemy_patrol_routes"]
+      },
+      "hostile_threshold": -40
+    },
+    "imprisoned_mage": {
+      "id": "imprisoned_mage",
+      "name": "Seraphina",
+      "title": "The Caged Sorcerer",
+      "personality": "scholar",
+      "description": "A robed figure behind magical barriers, books floating around her",
+      "appearance": "Elven woman with silver hair, arcane symbols glowing on her skin",
+      "location_preference": ["prison_cell", "magic_sealed_room"],
+      "dialogue": {
+        "greeting": [
+          "At last, someone not made of stone or malice!",
+          "The wards prevent my escape, but not conversation.",
+          "You have the look of an adventurer. Perhaps we can help each other."
+        ],
+        "backstory": [
+          "I came seeking the Codex of Depths. Found more than I bargained for.",
+          "The entity that rules here... it collects mages. We power its prison.",
+          "Three binding stones hold this ward. Destroy them, and I go free."
+        ],
+        "knowledge": [
+          "The creatures here were once human. Transformed by the depths.",
+          "Magic behaves strangely here. The dungeon... drinks it.",
+          "There are older things below. Older than the dungeon itself."
+        ],
+        "farewell": [
+          "Find the binding stones. Please.",
+          "Be careful with magic here. It attracts attention.",
+          "I will wait. What choice do I have?"
+        ]
+      },
+      "quests": ["free_the_mage", "find_codex"],
+      "can_join_party": true,
+      "requires_rescue": true,
+      "rescue_conditions": ["destroy_binding_stone_1", "destroy_binding_stone_2", "destroy_binding_stone_3"],
+      "combat_stats": {
+        "hp": 40,
+        "attack": 25,
+        "defense": 5,
+        "magic": 40
+      },
+      "hostile_threshold": -60
+    },
+    "tavern_keeper": {
+      "id": "tavern_keeper",
+      "name": "Bram",
+      "title": "Keeper of the Last Rest",
+      "personality": "friendly",
+      "description": "A surprisingly cheerful barkeep running an impossible tavern in the depths",
+      "appearance": "Burly man with a bushy mustache, perpetually polishing a tankard",
+      "location_preference": ["safe_room", "tavern_room"],
+      "dialogue": {
+        "greeting": [
+          "Welcome to the Last Rest! Only tavern in the dungeon!",
+          "Pull up a seat! The ale's warm but the company's warmer!",
+          "A new face! Always good to see the living!"
+        ],
+        "rest_offer": [
+          "Need a rest? My fire keeps the monsters at bay. Mostly.",
+          "A meal and rest will do you good. Only five gold.",
+          "The beds aren't fancy, but they're safe. Safest in the depths!"
+        ],
+        "rumors": [
+          "Heard tell of a dragon's hoard three levels down. And a dragon to match.",
+          "That knight by the fire? Been here since before I arrived. Never sleeps.",
+          "The goblins have been restless. Something's stirred them up."
+        ],
+        "farewell": [
+          "Safe travels! Come back alive!",
+          "May your sword stay sharp and your wits sharper!",
+          "The Last Rest will be here when you need it!"
+        ]
+      },
+      "services": {
+        "rest": {"cost": 5, "effect": "full_heal"},
+        "meal": {"cost": 2, "effect": "restore_20_hp"},
+        "rumors": {"cost": 1, "effect": "random_hint"}
+      },
+      "hostile_threshold": -90
+    },
+    "dying_adventurer": {
+      "id": "dying_adventurer",
+      "name": "Unknown",
+      "title": "The Fallen",
+      "personality": "fearful",
+      "description": "A mortally wounded adventurer, their final breaths numbered",
+      "appearance": "Figure slumped against a wall, armor rent, blood pooling beneath them",
+      "location_preference": ["corridor", "trap_room", "after_boss"],
+      "dialogue": {
+        "greeting": [
+          "You... you're real? Not another trick?",
+          "*coughing* Don't... don't go that way...",
+          "Finally... someone to hear my last words..."
+        ],
+        "warning": [
+          "The thing in the dark... it's not what it seems...",
+          "The treasure... it's bait. The whole room is a trap.",
+          "My party... all dead. We weren't prepared."
+        ],
+        "last_words": [
+          "Take my map... finish what we started.",
+          "Tell them... tell them I tried...",
+          "The real danger... isn't the monsters..."
+        ]
+      },
+      "drops_on_death": ["tattered_map", "last_will", "adventurer_key"],
+      "temporary": true,
+      "despawn_condition": "leave_room",
+      "hostile_threshold": null
+    }
+  },
+  "disposition_effects": {
+    "hostile": {"threshold": -50, "behavior": "attacks_on_sight"},
+    "unfriendly": {"threshold": -25, "behavior": "refuses_interaction"},
+    "neutral": {"threshold": 0, "behavior": "basic_interaction"},
+    "friendly": {"threshold": 25, "behavior": "helpful_interaction"},
+    "allied": {"threshold": 50, "behavior": "offers_assistance"}
+  },
+  "disposition_modifiers": {
+    "give_gift": 10,
+    "complete_quest": 25,
+    "help_in_combat": 15,
+    "steal_from": -30,
+    "attack": -50,
+    "insult": -10,
+    "compliment": 5
+  }
+}

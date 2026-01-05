@@ -1,0 +1,330 @@
+{
+  "version": "1.0.0",
+  "description": "Biome and environment definitions for Tile-Crawler",
+  "biomes": {
+    "dungeon": {
+      "id": "dungeon",
+      "name": "Ancient Dungeon",
+      "description": "A labyrinth of stone corridors and forgotten chambers",
+      "narrative_tone": "foreboding and mysterious",
+      "atmosphere": {
+        "lighting": "dim",
+        "sounds": ["dripping water", "distant echoes", "scraping stone"],
+        "smells": ["dust", "mildew", "ancient air"]
+      },
+      "tile_palette": {
+        "wall": "▓",
+        "floor": "░",
+        "water": "≈",
+        "door": "+",
+        "special": ["╔", "═", "╗", "║", "╚", "╝"]
+      },
+      "room_types": ["corridor", "chamber", "vault", "cell", "guard_post"],
+      "common_enemies": ["giant_rat", "skeleton_warrior", "goblin", "slime"],
+      "rare_enemies": ["mimic", "wraith"],
+      "boss_candidates": ["vampire"],
+      "common_items": ["torch", "healing_potion", "rusty_sword", "lockpick"],
+      "rare_items": ["ancient_key", "silver_blade"],
+      "environmental_hazards": ["trap", "pit", "collapsing_ceiling"],
+      "difficulty_range": [1, 5],
+      "ambient_events": [
+        "A cold draft extinguishes nearby torches.",
+        "You hear distant screaming, then silence.",
+        "The walls seem to close in momentarily.",
+        "Ancient runes flicker briefly on the walls."
+      ],
+      "flavor_descriptions": [
+        "Cobwebs drape the corners like funeral shrouds.",
+        "The stones here have witnessed countless deaths.",
+        "Your footsteps echo endlessly into the darkness.",
+        "Time has no meaning in these forgotten halls."
+      ]
+    },
+    "cave": {
+      "id": "cave",
+      "name": "Natural Caves",
+      "description": "Twisting natural caverns carved by water and time",
+      "narrative_tone": "primal and claustrophobic",
+      "atmosphere": {
+        "lighting": "dark",
+        "sounds": ["dripping stalactites", "rushing water", "chittering"],
+        "smells": ["damp earth", "bat guano", "mineral tang"]
+      },
+      "tile_palette": {
+        "wall": "▓",
+        "floor": "░",
+        "water": "≈",
+        "stalagmite": "▲",
+        "crystal": "◊"
+      },
+      "room_types": ["cavern", "tunnel", "underground_lake", "crystal_cave", "nest"],
+      "common_enemies": ["giant_rat", "cave_spider", "slime", "goblin"],
+      "rare_enemies": ["goblin_shaman", "stone_golem"],
+      "boss_candidates": ["ancient_dragon"],
+      "common_items": ["torch", "rope", "healing_potion"],
+      "rare_items": ["rare_gem", "soul_gem", "dragon_scale"],
+      "environmental_hazards": ["unstable_ground", "flooding", "poison_gas"],
+      "difficulty_range": [1, 4],
+      "ambient_events": [
+        "Something skitters in the darkness beyond your light.",
+        "The cave groans as if breathing.",
+        "Crystals pulse with inner light, then fade.",
+        "You disturb a colony of bats."
+      ],
+      "flavor_descriptions": [
+        "Stalactites hang like stone fangs above you.",
+        "Phosphorescent moss provides faint illumination.",
+        "The walls glisten with moisture.",
+        "The passage narrows, forcing you to squeeze through."
+      ]
+    },
+    "crypt": {
+      "id": "crypt",
+      "name": "Cursed Crypts",
+      "description": "The resting place of the dead, now disturbed",
+      "narrative_tone": "dark and unsettling",
+      "atmosphere": {
+        "lighting": "minimal",
+        "sounds": ["rattling bones", "moaning wind", "whispers"],
+        "smells": ["decay", "incense", "grave dirt"]
+      },
+      "tile_palette": {
+        "wall": "▓",
+        "floor": "░",
+        "grave": "┼",
+        "coffin": "■",
+        "altar": "╬"
+      },
+      "room_types": ["burial_chamber", "ossuary", "mausoleum", "chapel", "tomb"],
+      "common_enemies": ["skeleton_warrior", "zombie", "wraith"],
+      "rare_enemies": ["vampire", "dark_cultist"],
+      "boss_candidates": ["vampire", "eldritch_horror"],
+      "common_items": ["holy_water", "torch", "healing_potion"],
+      "rare_items": ["ancient_key", "crown_of_the_depths", "soul_gem"],
+      "environmental_hazards": ["cursed_ground", "ghost_possession", "tomb_gas"],
+      "difficulty_range": [3, 7],
+      "undead_spawn_rate": 2.0,
+      "ambient_events": [
+        "Coffins creak as if something stirs within.",
+        "The names on tombstones shift when you look away.",
+        "A spectral hand reaches from a grave, then vanishes.",
+        "Candles light themselves as you approach."
+      ],
+      "flavor_descriptions": [
+        "The dead do not rest easy here.",
+        "Epitaphs speak of lives cut short by violence.",
+        "The air is thick with the presence of spirits.",
+        "Someone has been digging. From the inside."
+      ]
+    },
+    "ruins": {
+      "id": "ruins",
+      "name": "Ancient Ruins",
+      "description": "The crumbling remains of a lost civilization",
+      "narrative_tone": "melancholic and mysterious",
+      "atmosphere": {
+        "lighting": "variable",
+        "sounds": ["wind through gaps", "crumbling stone", "distant birds"],
+        "smells": ["old stone", "vegetation", "rain"]
+      },
+      "tile_palette": {
+        "wall": "▓",
+        "floor": "░",
+        "rubble": ".",
+        "pillar": "║",
+        "grass": "\""
+      },
+      "room_types": ["courtyard", "collapsed_hall", "overgrown_chamber", "tower_base", "archive"],
+      "common_enemies": ["goblin", "skeleton_warrior", "stone_golem"],
+      "rare_enemies": ["shadow_assassin", "wraith"],
+      "boss_candidates": ["stone_golem"],
+      "common_items": ["dungeon_map_fragment", "rope", "torch"],
+      "rare_items": ["ancient_key", "scroll_fireball", "rare_gem"],
+      "environmental_hazards": ["collapsing_floor", "hidden_pit", "unstable_wall"],
+      "difficulty_range": [2, 6],
+      "ambient_events": [
+        "A section of wall crumbles as you pass.",
+        "Ancient murals depict a catastrophe.",
+        "You find bones crushed beneath fallen stones.",
+        "Something valuable glints in the rubble."
+      ],
+      "flavor_descriptions": [
+        "What once stood proud now bows to time.",
+        "Nature reclaims what was taken from it.",
+        "The architecture speaks of forgotten grandeur.",
+        "Inscriptions in a dead language cover the walls."
+      ]
+    },
+    "temple": {
+      "id": "temple",
+      "name": "Forbidden Temple",
+      "description": "A place of worship corrupted by dark powers",
+      "narrative_tone": "ominous and sacred",
+      "atmosphere": {
+        "lighting": "dim with strange sources",
+        "sounds": ["chanting", "bells", "heartbeat"],
+        "smells": ["blood", "incense", "brimstone"]
+      },
+      "tile_palette": {
+        "wall": "▓",
+        "floor": "░",
+        "altar": "╬",
+        "statue": "Γ",
+        "portal": "◎"
+      },
+      "room_types": ["sanctuary", "ritual_chamber", "meditation_room", "library", "summoning_circle"],
+      "common_enemies": ["dark_cultist", "skeleton_warrior", "lesser_demon"],
+      "rare_enemies": ["vampire", "stone_golem"],
+      "boss_candidates": ["eldritch_horror", "lesser_demon"],
+      "common_items": ["scroll_light", "mana_potion", "antidote"],
+      "rare_items": ["staff_of_flames", "soul_gem", "scroll_teleport"],
+      "environmental_hazards": ["magic_trap", "summoning_circle", "cursed_idol"],
+      "difficulty_range": [4, 8],
+      "magic_intensity": 2.0,
+      "ambient_events": [
+        "The altar pulses with malevolent energy.",
+        "Cultist prayers echo from unseen chambers.",
+        "Blood runs in channels carved into the floor.",
+        "A deity's eyes seem to follow you."
+      ],
+      "flavor_descriptions": [
+        "The sacred has been twisted into something profane.",
+        "Prayers here are answered by things best left unnamed.",
+        "Power radiates from every corrupted symbol.",
+        "The faithful serve, even in death."
+      ]
+    },
+    "forest": {
+      "id": "forest",
+      "name": "Dark Forest",
+      "description": "A twisted woodland where light fears to tread",
+      "narrative_tone": "eerie and enchanted",
+      "atmosphere": {
+        "lighting": "dappled to dark",
+        "sounds": ["rustling leaves", "howling", "whispered words"],
+        "smells": ["moss", "decay", "wildflowers"]
+      },
+      "tile_palette": {
+        "tree": "♣",
+        "floor": "░",
+        "grass": "\"",
+        "water": "≈",
+        "bush": "♠"
+      },
+      "room_types": ["clearing", "thicket", "grove", "stream_crossing", "hollow_tree"],
+      "common_enemies": ["goblin", "cave_spider", "giant_rat"],
+      "rare_enemies": ["shadow_assassin", "wraith"],
+      "boss_candidates": ["ancient_dragon"],
+      "common_items": ["antidote", "rope", "healing_potion"],
+      "rare_items": ["shadow_cloak", "elixir_of_strength"],
+      "environmental_hazards": ["quicksand", "poison_plants", "predator_ambush"],
+      "difficulty_range": [1, 5],
+      "ambient_events": [
+        "The trees seem to lean in, listening.",
+        "A path that was there moments ago has vanished.",
+        "Eyes watch from the undergrowth.",
+        "The forest falls silent, then erupts with noise."
+      ],
+      "flavor_descriptions": [
+        "The canopy blocks all but slivers of sky.",
+        "Roots twist like grasping fingers.",
+        "Something was here recently. Something large.",
+        "The deeper you go, the darker it becomes."
+      ]
+    },
+    "volcano": {
+      "id": "volcano",
+      "name": "Volcanic Depths",
+      "description": "The burning heart of an active volcano",
+      "narrative_tone": "intense and deadly",
+      "atmosphere": {
+        "lighting": "red glow",
+        "sounds": ["bubbling lava", "rock cracking", "hissing steam"],
+        "smells": ["sulfur", "ash", "burning"]
+      },
+      "tile_palette": {
+        "wall": "▓",
+        "floor": "░",
+        "lava": "~",
+        "obsidian": "▓",
+        "vent": "○"
+      },
+      "room_types": ["lava_chamber", "obsidian_bridge", "volcanic_vent", "forge", "dragon_lair"],
+      "common_enemies": ["flame_elemental", "lesser_demon"],
+      "rare_enemies": ["ancient_dragon"],
+      "boss_candidates": ["ancient_dragon", "flame_elemental"],
+      "common_items": ["healing_potion", "antidote"],
+      "rare_items": ["dragon_scale", "flame_tongue", "staff_of_flames"],
+      "environmental_hazards": ["lava_flow", "eruption", "heat_exhaustion", "toxic_gas"],
+      "difficulty_range": [6, 10],
+      "fire_damage_ambient": 2,
+      "ambient_events": [
+        "The ground shakes as magma shifts below.",
+        "A geyser of flame erupts nearby.",
+        "The heat becomes almost unbearable.",
+        "Obsidian formations crack and reform."
+      ],
+      "flavor_descriptions": [
+        "The air shimmers with lethal heat.",
+        "Rivers of molten rock carve new paths.",
+        "Nothing should live here. Something does.",
+        "The mountain's heart beats with fire."
+      ]
+    },
+    "void": {
+      "id": "void",
+      "name": "The Void Between",
+      "description": "A space between dimensions where reality frays",
+      "narrative_tone": "cosmic horror and disorientation",
+      "atmosphere": {
+        "lighting": "impossible",
+        "sounds": ["silence", "whispers in unknown tongues", "your own heartbeat"],
+        "smells": ["nothing", "everything", "wrongness"]
+      },
+      "tile_palette": {
+        "void": " ",
+        "platform": "░",
+        "rift": "◎",
+        "star": "·",
+        "anomaly": "?"
+      },
+      "room_types": ["floating_platform", "dimensional_rift", "star_field", "impossible_geometry", "void_heart"],
+      "common_enemies": ["wraith", "lesser_demon"],
+      "rare_enemies": ["eldritch_horror"],
+      "boss_candidates": ["eldritch_horror"],
+      "common_items": ["mana_potion", "scroll_teleport"],
+      "rare_items": ["crown_of_the_depths", "soul_gem"],
+      "environmental_hazards": ["reality_warp", "gravity_shift", "sanity_drain", "void_fall"],
+      "difficulty_range": [8, 10],
+      "sanity_drain_ambient": 1,
+      "ambient_events": [
+        "You see yourself walking in the opposite direction.",
+        "Time flows backward for a moment.",
+        "Stars blink out and reappear elsewhere.",
+        "Something vast moves in the distance."
+      ],
+      "flavor_descriptions": [
+        "Up and down are suggestions here.",
+        "The void stares back.",
+        "Reality is just a memory here.",
+        "You're not sure you exist anymore."
+      ]
+    }
+  },
+  "biome_connections": {
+    "dungeon": ["cave", "crypt", "ruins"],
+    "cave": ["dungeon", "forest", "volcano"],
+    "crypt": ["dungeon", "temple", "ruins"],
+    "ruins": ["dungeon", "forest", "crypt"],
+    "temple": ["crypt", "dungeon", "void"],
+    "forest": ["cave", "ruins"],
+    "volcano": ["cave", "void"],
+    "void": ["temple", "volcano"]
+  },
+  "depth_progression": [
+    {"depth": [1, 3], "biomes": ["dungeon", "cave", "forest"]},
+    {"depth": [4, 6], "biomes": ["ruins", "crypt", "temple"]},
+    {"depth": [7, 9], "biomes": ["volcano", "temple"]},
+    {"depth": [10, 99], "biomes": ["void"]}
+  ]
+}
