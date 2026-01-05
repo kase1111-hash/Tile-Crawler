@@ -105,7 +105,7 @@ Always respond with valid JSON matching the requested format."""
             filepath = os.path.join(data_dir, filename)
             if os.path.exists(filepath):
                 try:
-                    with open(filepath, 'r') as f:
+                    with open(filepath, 'r', encoding='utf-8') as f:
                         key = filename.replace(".json", "")
                         data[key] = json.load(f)
                 except Exception as e:
