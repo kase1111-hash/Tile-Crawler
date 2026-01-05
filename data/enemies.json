@@ -1,0 +1,571 @@
+{
+  "version": "1.0.0",
+  "description": "Enemy and monster definitions for Tile-Crawler",
+  "enemy_types": {
+    "beast": "Natural creatures and animals",
+    "undead": "Reanimated corpses and spirits",
+    "humanoid": "Intelligent humanoid creatures",
+    "demon": "Creatures from other planes",
+    "construct": "Magically animated objects",
+    "dragon": "Draconic creatures",
+    "aberration": "Unnatural horrors"
+  },
+  "difficulty_tiers": {
+    "minion": {"hp_range": [5, 15], "damage_range": [2, 5], "xp_base": 10},
+    "common": {"hp_range": [15, 35], "damage_range": [5, 10], "xp_base": 25},
+    "elite": {"hp_range": [40, 80], "damage_range": [10, 20], "xp_base": 75},
+    "boss": {"hp_range": [100, 300], "damage_range": [20, 40], "xp_base": 250},
+    "legendary": {"hp_range": [300, 1000], "damage_range": [40, 80], "xp_base": 1000}
+  },
+  "enemies": {
+    "giant_rat": {
+      "id": "giant_rat",
+      "name": "Giant Rat",
+      "description": "A disease-ridden rodent of unusual size",
+      "type": "beast",
+      "tier": "minion",
+      "char": "r",
+      "stats": {
+        "hp": 8,
+        "attack": 3,
+        "defense": 1,
+        "speed": 4
+      },
+      "behavior": "aggressive",
+      "abilities": [],
+      "loot_table": "giant_rat_loot",
+      "xp_reward": 10,
+      "spawn_biomes": ["dungeon", "sewer", "cave"],
+      "flavor_text": "They say there are no giant rats in the dungeon. They lie."
+    },
+    "cave_spider": {
+      "id": "cave_spider",
+      "name": "Cave Spider",
+      "description": "A venomous spider that lurks in dark corners",
+      "type": "beast",
+      "tier": "minion",
+      "char": "s",
+      "stats": {
+        "hp": 10,
+        "attack": 4,
+        "defense": 2,
+        "speed": 5
+      },
+      "behavior": "ambush",
+      "abilities": ["poison_bite"],
+      "status_effects": {
+        "poison_bite": {"damage": 2, "duration": 3, "chance": 40}
+      },
+      "loot_table": "spider_loot",
+      "xp_reward": 15,
+      "spawn_biomes": ["cave", "dungeon"],
+      "flavor_text": "The webbing was a warning you ignored."
+    },
+    "skeleton_warrior": {
+      "id": "skeleton_warrior",
+      "name": "Skeleton Warrior",
+      "description": "An animated skeleton wielding rusty weapons",
+      "type": "undead",
+      "tier": "common",
+      "char": "S",
+      "stats": {
+        "hp": 25,
+        "attack": 8,
+        "defense": 5,
+        "speed": 2
+      },
+      "behavior": "patrol",
+      "abilities": ["bone_shield"],
+      "resistances": {
+        "piercing": 50,
+        "cold": 25
+      },
+      "vulnerabilities": {
+        "bludgeoning": 50,
+        "holy": 100
+      },
+      "loot_table": "skeleton_loot",
+      "xp_reward": 30,
+      "spawn_biomes": ["crypt", "dungeon", "ruins"],
+      "flavor_text": "Death was just the beginning of its service."
+    },
+    "zombie": {
+      "id": "zombie",
+      "name": "Shambling Zombie",
+      "description": "A rotting corpse animated by dark magic",
+      "type": "undead",
+      "tier": "common",
+      "char": "Z",
+      "stats": {
+        "hp": 35,
+        "attack": 6,
+        "defense": 3,
+        "speed": 1
+      },
+      "behavior": "slow_aggressive",
+      "abilities": ["infectious_bite"],
+      "status_effects": {
+        "infectious_bite": {"type": "disease", "duration": 10, "chance": 25}
+      },
+      "resistances": {
+        "poison": 100
+      },
+      "vulnerabilities": {
+        "fire": 50,
+        "holy": 75
+      },
+      "loot_table": "zombie_loot",
+      "xp_reward": 25,
+      "spawn_biomes": ["crypt", "swamp", "cursed_ground"],
+      "flavor_text": "It remembers nothing. It hungers for everything."
+    },
+    "goblin": {
+      "id": "goblin",
+      "name": "Goblin",
+      "description": "A small, cunning creature that attacks in groups",
+      "type": "humanoid",
+      "tier": "minion",
+      "char": "g",
+      "stats": {
+        "hp": 12,
+        "attack": 5,
+        "defense": 2,
+        "speed": 4
+      },
+      "behavior": "pack",
+      "abilities": ["call_allies"],
+      "pack_size": [2, 5],
+      "loot_table": "goblin_loot",
+      "xp_reward": 12,
+      "spawn_biomes": ["cave", "dungeon", "forest"],
+      "flavor_text": "Where there's one goblin, there's always more."
+    },
+    "goblin_shaman": {
+      "id": "goblin_shaman",
+      "name": "Goblin Shaman",
+      "description": "A goblin wielding crude but effective magic",
+      "type": "humanoid",
+      "tier": "elite",
+      "char": "G",
+      "stats": {
+        "hp": 40,
+        "attack": 4,
+        "defense": 3,
+        "speed": 3,
+        "magic": 15
+      },
+      "behavior": "support",
+      "abilities": ["heal_allies", "dark_bolt", "summon_goblins"],
+      "spell_list": {
+        "dark_bolt": {"damage": 15, "type": "dark"},
+        "heal_allies": {"healing": 20, "range": 3},
+        "summon_goblins": {"count": 2, "cooldown": 5}
+      },
+      "loot_table": "shaman_loot",
+      "xp_reward": 80,
+      "spawn_biomes": ["cave", "dungeon"],
+      "always_with": ["goblin"],
+      "flavor_text": "The whispers taught it secrets. Dark secrets."
+    },
+    "orc_warrior": {
+      "id": "orc_warrior",
+      "name": "Orc Warrior",
+      "description": "A brutal warrior of the orc clans",
+      "type": "humanoid",
+      "tier": "common",
+      "char": "O",
+      "stats": {
+        "hp": 45,
+        "attack": 12,
+        "defense": 8,
+        "speed": 2
+      },
+      "behavior": "aggressive",
+      "abilities": ["battle_cry", "heavy_strike"],
+      "special_attacks": {
+        "heavy_strike": {"damage_multiplier": 1.5, "cooldown": 3}
+      },
+      "loot_table": "orc_loot",
+      "xp_reward": 50,
+      "spawn_biomes": ["dungeon", "fortress", "wasteland"],
+      "flavor_text": "Blood and battle are its only pleasures."
+    },
+    "wraith": {
+      "id": "wraith",
+      "name": "Wraith",
+      "description": "A malevolent spirit bound to the mortal plane",
+      "type": "undead",
+      "tier": "elite",
+      "char": "W",
+      "stats": {
+        "hp": 50,
+        "attack": 15,
+        "defense": 2,
+        "speed": 5,
+        "magic": 20
+      },
+      "behavior": "stalker",
+      "abilities": ["life_drain", "phase_through_walls", "terrifying_wail"],
+      "special_attacks": {
+        "life_drain": {"damage": 12, "self_heal": 6},
+        "terrifying_wail": {"effect": "fear", "duration": 2, "cooldown": 5}
+      },
+      "resistances": {
+        "physical": 75
+      },
+      "vulnerabilities": {
+        "holy": 100,
+        "silver": 50
+      },
+      "loot_table": "wraith_loot",
+      "xp_reward": 100,
+      "spawn_biomes": ["crypt", "haunted", "cursed_ground"],
+      "flavor_text": "It died with unfinished business. You are that business now."
+    },
+    "mimic": {
+      "id": "mimic",
+      "name": "Mimic",
+      "description": "A creature that disguises itself as treasure",
+      "type": "aberration",
+      "tier": "elite",
+      "char": "M",
+      "stats": {
+        "hp": 60,
+        "attack": 18,
+        "defense": 15,
+        "speed": 1
+      },
+      "behavior": "ambush",
+      "abilities": ["surprise_attack", "adhesive", "shape_shift"],
+      "disguise": ["chest", "door", "item"],
+      "special_attacks": {
+        "surprise_attack": {"damage_multiplier": 2.0, "first_attack_only": true},
+        "adhesive": {"effect": "stuck", "duration": 2}
+      },
+      "loot_table": "mimic_loot",
+      "xp_reward": 90,
+      "spawn_biomes": ["any"],
+      "flavor_text": "That treasure was too good to be true. Because it wasn't treasure."
+    },
+    "stone_golem": {
+      "id": "stone_golem",
+      "name": "Stone Golem",
+      "description": "An animated statue of immense power",
+      "type": "construct",
+      "tier": "elite",
+      "char": "Γ",
+      "stats": {
+        "hp": 100,
+        "attack": 20,
+        "defense": 25,
+        "speed": 1
+      },
+      "behavior": "guardian",
+      "abilities": ["ground_slam", "regenerate"],
+      "special_attacks": {
+        "ground_slam": {"damage": 25, "area": 2, "cooldown": 4}
+      },
+      "resistances": {
+        "physical": 50,
+        "fire": 25,
+        "cold": 25,
+        "poison": 100
+      },
+      "vulnerabilities": {
+        "lightning": 50
+      },
+      "loot_table": "golem_loot",
+      "xp_reward": 120,
+      "spawn_biomes": ["ruins", "temple", "vault"],
+      "flavor_text": "Built to guard for eternity. It takes its job seriously."
+    },
+    "dark_cultist": {
+      "id": "dark_cultist",
+      "name": "Dark Cultist",
+      "description": "A fanatical worshipper of forbidden powers",
+      "type": "humanoid",
+      "tier": "common",
+      "char": "C",
+      "stats": {
+        "hp": 30,
+        "attack": 6,
+        "defense": 4,
+        "speed": 3,
+        "magic": 12
+      },
+      "behavior": "ritualist",
+      "abilities": ["dark_bolt", "sacrifice", "summon_demon"],
+      "spell_list": {
+        "dark_bolt": {"damage": 12, "type": "dark"},
+        "sacrifice": {"self_damage": 10, "summon": "lesser_demon"}
+      },
+      "loot_table": "cultist_loot",
+      "xp_reward": 40,
+      "spawn_biomes": ["temple", "crypt", "dungeon"],
+      "flavor_text": "Their prayers are answered. You wish they weren't."
+    },
+    "lesser_demon": {
+      "id": "lesser_demon",
+      "name": "Lesser Demon",
+      "description": "A fiend summoned from the lower planes",
+      "type": "demon",
+      "tier": "elite",
+      "char": "D",
+      "stats": {
+        "hp": 70,
+        "attack": 16,
+        "defense": 10,
+        "speed": 4,
+        "magic": 10
+      },
+      "behavior": "aggressive",
+      "abilities": ["fire_claws", "demon_rage"],
+      "special_attacks": {
+        "fire_claws": {"damage": 12, "fire_damage": 8},
+        "demon_rage": {"attack_boost": 5, "defense_penalty": 3, "duration": 3}
+      },
+      "resistances": {
+        "fire": 75
+      },
+      "vulnerabilities": {
+        "holy": 100,
+        "cold": 25
+      },
+      "loot_table": "demon_loot",
+      "xp_reward": 110,
+      "spawn_biomes": ["hell", "temple", "summoning_circle"],
+      "flavor_text": "It came when called. It stays because it wants to."
+    },
+    "vampire": {
+      "id": "vampire",
+      "name": "Vampire",
+      "description": "An ancient undead that feeds on the living",
+      "type": "undead",
+      "tier": "boss",
+      "char": "V",
+      "stats": {
+        "hp": 150,
+        "attack": 25,
+        "defense": 15,
+        "speed": 6,
+        "magic": 25
+      },
+      "behavior": "cunning",
+      "abilities": ["blood_drain", "charm", "mist_form", "summon_bats"],
+      "special_attacks": {
+        "blood_drain": {"damage": 20, "self_heal": 15},
+        "charm": {"effect": "charmed", "duration": 3, "cooldown": 6}
+      },
+      "phase_abilities": {
+        "mist_form": {"trigger_hp_percent": 30, "invulnerable": true, "duration": 2}
+      },
+      "resistances": {
+        "cold": 50,
+        "dark": 75
+      },
+      "vulnerabilities": {
+        "holy": 100,
+        "fire": 50,
+        "sunlight": 200
+      },
+      "loot_table": "vampire_loot",
+      "xp_reward": 350,
+      "spawn_biomes": ["castle", "crypt", "mansion"],
+      "boss_room": true,
+      "flavor_text": "Immortality has a price. You're about to pay it."
+    },
+    "ancient_dragon": {
+      "id": "ancient_dragon",
+      "name": "Ancient Dragon",
+      "description": "A primordial wyrm of immeasurable power",
+      "type": "dragon",
+      "tier": "legendary",
+      "char": "Ω",
+      "stats": {
+        "hp": 500,
+        "attack": 45,
+        "defense": 35,
+        "speed": 4,
+        "magic": 30
+      },
+      "behavior": "territorial",
+      "abilities": ["fire_breath", "tail_sweep", "wing_buffet", "dragon_fear", "ancient_magic"],
+      "special_attacks": {
+        "fire_breath": {"damage": 60, "area": "cone", "cooldown": 4},
+        "tail_sweep": {"damage": 30, "knockback": 2},
+        "wing_buffet": {"damage": 20, "stun": 1}
+      },
+      "phase_abilities": {
+        "dragon_rage": {"trigger_hp_percent": 50, "attack_boost": 15, "speed_boost": 2},
+        "ancient_magic": {"trigger_hp_percent": 25, "spell_barrage": true}
+      },
+      "resistances": {
+        "fire": 100,
+        "physical": 25
+      },
+      "vulnerabilities": {
+        "ice": 50
+      },
+      "loot_table": "ancient_dragon_loot",
+      "xp_reward": 2000,
+      "spawn_biomes": ["dragon_lair", "volcano", "mountain_peak"],
+      "boss_room": true,
+      "unique": true,
+      "flavor_text": "Legends spoke of this creature. They didn't do it justice."
+    },
+    "shadow_assassin": {
+      "id": "shadow_assassin",
+      "name": "Shadow Assassin",
+      "description": "A killer that moves through darkness itself",
+      "type": "humanoid",
+      "tier": "elite",
+      "char": "A",
+      "stats": {
+        "hp": 55,
+        "attack": 22,
+        "defense": 8,
+        "speed": 7
+      },
+      "behavior": "stalker",
+      "abilities": ["backstab", "shadow_step", "poison_blade", "vanish"],
+      "special_attacks": {
+        "backstab": {"damage_multiplier": 2.5, "requires": "hidden"},
+        "poison_blade": {"poison_damage": 5, "duration": 4}
+      },
+      "stealth": {
+        "hide_chance": 60,
+        "detect_threshold": 15
+      },
+      "loot_table": "assassin_loot",
+      "xp_reward": 95,
+      "spawn_biomes": ["dungeon", "city", "shadows"],
+      "flavor_text": "You never see the blade that kills you."
+    },
+    "eldritch_horror": {
+      "id": "eldritch_horror",
+      "name": "Eldritch Horror",
+      "description": "A being that defies mortal comprehension",
+      "type": "aberration",
+      "tier": "legendary",
+      "char": "Φ",
+      "stats": {
+        "hp": 400,
+        "attack": 35,
+        "defense": 20,
+        "speed": 3,
+        "magic": 50
+      },
+      "behavior": "alien",
+      "abilities": ["mind_blast", "reality_warp", "tentacle_storm", "maddening_presence", "dimensional_shift"],
+      "special_attacks": {
+        "mind_blast": {"damage": 30, "effect": "confusion", "duration": 2},
+        "tentacle_storm": {"damage": 20, "hits": 4, "area": 3},
+        "maddening_presence": {"effect": "sanity_drain", "passive": true}
+      },
+      "phase_abilities": {
+        "dimensional_shift": {"trigger_hp_percent": 60, "teleport": true, "summons": 2},
+        "reality_warp": {"trigger_hp_percent": 30, "terrain_change": true}
+      },
+      "resistances": {
+        "physical": 50,
+        "dark": 75,
+        "psychic": 100
+      },
+      "vulnerabilities": {
+        "holy": 75,
+        "fire": 25
+      },
+      "loot_table": "eldritch_loot",
+      "xp_reward": 1500,
+      "spawn_biomes": ["void", "deep_dungeon", "cursed_temple"],
+      "boss_room": true,
+      "unique": true,
+      "sanity_effect": {"drain_rate": 5, "proximity": 5},
+      "flavor_text": "To see it is to question everything. To fight it is madness."
+    },
+    "slime": {
+      "id": "slime",
+      "name": "Gelatinous Slime",
+      "description": "A mindless blob that dissolves organic matter",
+      "type": "aberration",
+      "tier": "minion",
+      "char": "j",
+      "stats": {
+        "hp": 20,
+        "attack": 3,
+        "defense": 0,
+        "speed": 1
+      },
+      "behavior": "wander",
+      "abilities": ["acid_touch", "split"],
+      "special_attacks": {
+        "acid_touch": {"damage": 3, "armor_damage": 1}
+      },
+      "on_death": {
+        "split": {"chance": 50, "spawns": 2, "variant": "small_slime"}
+      },
+      "resistances": {
+        "physical": 50,
+        "acid": 100
+      },
+      "vulnerabilities": {
+        "fire": 50
+      },
+      "loot_table": "slime_loot",
+      "xp_reward": 8,
+      "spawn_biomes": ["sewer", "cave", "dungeon"],
+      "flavor_text": "It doesn't think. It just dissolves."
+    },
+    "flame_elemental": {
+      "id": "flame_elemental",
+      "name": "Flame Elemental",
+      "description": "A living manifestation of fire",
+      "type": "construct",
+      "tier": "elite",
+      "char": "F",
+      "stats": {
+        "hp": 65,
+        "attack": 18,
+        "defense": 5,
+        "speed": 5,
+        "magic": 15
+      },
+      "behavior": "aggressive",
+      "abilities": ["fire_aura", "flame_burst", "ignite"],
+      "aura": {
+        "fire_aura": {"damage": 5, "range": 1}
+      },
+      "special_attacks": {
+        "flame_burst": {"damage": 25, "area": 2, "cooldown": 3}
+      },
+      "resistances": {
+        "fire": 100,
+        "physical": 25
+      },
+      "vulnerabilities": {
+        "cold": 100,
+        "water": 100
+      },
+      "loot_table": "elemental_loot",
+      "xp_reward": 85,
+      "spawn_biomes": ["volcano", "fire_temple", "forge"],
+      "light_source": {"radius": 3},
+      "flavor_text": "Born from flame, it knows nothing but burning."
+    }
+  },
+  "behaviors": {
+    "aggressive": "Attacks on sight, pursues relentlessly",
+    "patrol": "Follows set path, attacks if player detected",
+    "ambush": "Hides until player is close, then strikes",
+    "pack": "Calls for reinforcements, coordinates attacks",
+    "support": "Stays back, heals/buffs allies",
+    "guardian": "Protects specific area or object",
+    "stalker": "Follows player, attacks when advantageous",
+    "wander": "Moves randomly, attacks if bumped into",
+    "slow_aggressive": "Moves toward player slowly but surely",
+    "cunning": "Uses abilities strategically, retreats when hurt",
+    "ritualist": "Performs actions to summon/buff, defends ritual",
+    "territorial": "Attacks anything in its domain",
+    "alien": "Unpredictable movement and attack patterns"
+  }
+}

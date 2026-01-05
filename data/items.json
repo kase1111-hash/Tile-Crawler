@@ -1,0 +1,564 @@
+{
+  "version": "1.0.0",
+  "description": "Item definitions for Tile-Crawler",
+  "categories": {
+    "weapon": "Items used to deal damage in combat",
+    "armor": "Items that provide protection",
+    "consumable": "Single-use items with immediate effects",
+    "key_item": "Important items for quests and progression",
+    "treasure": "Valuable items that can be sold",
+    "tool": "Utility items for exploration",
+    "scroll": "Magical scrolls with spell effects",
+    "material": "Crafting components"
+  },
+  "rarities": {
+    "common": {"color": "#9d9d9d", "drop_weight": 60, "price_modifier": 1.0},
+    "uncommon": {"color": "#1eff00", "drop_weight": 25, "price_modifier": 2.0},
+    "rare": {"color": "#0070dd", "drop_weight": 10, "price_modifier": 5.0},
+    "epic": {"color": "#a335ee", "drop_weight": 4, "price_modifier": 15.0},
+    "legendary": {"color": "#ff8000", "drop_weight": 1, "price_modifier": 50.0}
+  },
+  "items": {
+    "rusty_sword": {
+      "id": "rusty_sword",
+      "name": "Rusty Sword",
+      "description": "A pitted blade, barely holding an edge. Better than nothing.",
+      "category": "weapon",
+      "rarity": "common",
+      "base_value": 5,
+      "stats": {
+        "attack": 3,
+        "speed": 0
+      },
+      "slot": "main_hand",
+      "flavor_text": "Every great warrior started somewhere."
+    },
+    "iron_sword": {
+      "id": "iron_sword",
+      "name": "Iron Sword",
+      "description": "A serviceable blade of forged iron.",
+      "category": "weapon",
+      "rarity": "common",
+      "base_value": 25,
+      "stats": {
+        "attack": 8,
+        "speed": 0
+      },
+      "slot": "main_hand",
+      "flavor_text": "The backbone of any adventurer's arsenal."
+    },
+    "silver_blade": {
+      "id": "silver_blade",
+      "name": "Silver Blade",
+      "description": "A gleaming sword of pure silver. Deadly against the undead.",
+      "category": "weapon",
+      "rarity": "uncommon",
+      "base_value": 100,
+      "stats": {
+        "attack": 12,
+        "speed": 1,
+        "bonus_vs_undead": 10
+      },
+      "slot": "main_hand",
+      "flavor_text": "The bane of creatures that refuse to stay dead."
+    },
+    "flame_tongue": {
+      "id": "flame_tongue",
+      "name": "Flame Tongue",
+      "description": "A blade wreathed in eternal flame. Burns hot to the touch.",
+      "category": "weapon",
+      "rarity": "rare",
+      "base_value": 500,
+      "stats": {
+        "attack": 18,
+        "speed": 0,
+        "fire_damage": 8
+      },
+      "slot": "main_hand",
+      "special_effect": "light_source",
+      "light_radius": 2,
+      "flavor_text": "Forged in dragonfire, or so the merchants claim."
+    },
+    "vorpal_blade": {
+      "id": "vorpal_blade",
+      "name": "Vorpal Blade",
+      "description": "A blade of impossible sharpness. Severs more than flesh.",
+      "category": "weapon",
+      "rarity": "legendary",
+      "base_value": 5000,
+      "stats": {
+        "attack": 35,
+        "speed": 2,
+        "crit_chance": 15,
+        "crit_multiplier": 3.0
+      },
+      "slot": "main_hand",
+      "special_effect": "instant_kill_chance",
+      "effect_chance": 5,
+      "flavor_text": "One, two! One, two! And through and through!"
+    },
+    "wooden_staff": {
+      "id": "wooden_staff",
+      "name": "Wooden Staff",
+      "description": "A simple walking staff that doubles as a weapon.",
+      "category": "weapon",
+      "rarity": "common",
+      "base_value": 8,
+      "stats": {
+        "attack": 4,
+        "magic": 2
+      },
+      "slot": "two_hand",
+      "flavor_text": "The journey of a thousand spells begins with a single stick."
+    },
+    "staff_of_flames": {
+      "id": "staff_of_flames",
+      "name": "Staff of Flames",
+      "description": "A staff crowned with an ever-burning ember.",
+      "category": "weapon",
+      "rarity": "rare",
+      "base_value": 400,
+      "stats": {
+        "attack": 6,
+        "magic": 20,
+        "fire_damage": 12
+      },
+      "slot": "two_hand",
+      "special_effect": "cast_fireball",
+      "charges": 3,
+      "flavor_text": "Handle with extreme caution."
+    },
+    "leather_armor": {
+      "id": "leather_armor",
+      "name": "Leather Armor",
+      "description": "Simple boiled leather protection.",
+      "category": "armor",
+      "rarity": "common",
+      "base_value": 20,
+      "stats": {
+        "defense": 5,
+        "speed": 0
+      },
+      "slot": "body",
+      "flavor_text": "It's not much, but it's honest protection."
+    },
+    "chainmail": {
+      "id": "chainmail",
+      "name": "Chainmail",
+      "description": "Interlocking rings of steel provide solid protection.",
+      "category": "armor",
+      "rarity": "uncommon",
+      "base_value": 100,
+      "stats": {
+        "defense": 15,
+        "speed": -1
+      },
+      "slot": "body",
+      "flavor_text": "The clinking announces your presence, but keeps you alive."
+    },
+    "plate_armor": {
+      "id": "plate_armor",
+      "name": "Plate Armor",
+      "description": "Full plate armor. Heavy but nearly impenetrable.",
+      "category": "armor",
+      "rarity": "rare",
+      "base_value": 500,
+      "stats": {
+        "defense": 30,
+        "speed": -3
+      },
+      "slot": "body",
+      "flavor_text": "Walk like a fortress, fight like a mountain."
+    },
+    "shadow_cloak": {
+      "id": "shadow_cloak",
+      "name": "Shadow Cloak",
+      "description": "A cloak woven from darkness itself.",
+      "category": "armor",
+      "rarity": "epic",
+      "base_value": 1500,
+      "stats": {
+        "defense": 10,
+        "speed": 3,
+        "stealth": 25
+      },
+      "slot": "body",
+      "special_effect": "invisibility",
+      "effect_duration": 3,
+      "cooldown": 10,
+      "flavor_text": "In darkness, you are darkness."
+    },
+    "wooden_shield": {
+      "id": "wooden_shield",
+      "name": "Wooden Shield",
+      "description": "A simple round shield of oak.",
+      "category": "armor",
+      "rarity": "common",
+      "base_value": 15,
+      "stats": {
+        "defense": 4,
+        "block_chance": 10
+      },
+      "slot": "off_hand",
+      "flavor_text": "Splinters are preferable to sword wounds."
+    },
+    "tower_shield": {
+      "id": "tower_shield",
+      "name": "Tower Shield",
+      "description": "A massive shield that can cover your entire body.",
+      "category": "armor",
+      "rarity": "rare",
+      "base_value": 300,
+      "stats": {
+        "defense": 15,
+        "block_chance": 30,
+        "speed": -2
+      },
+      "slot": "off_hand",
+      "flavor_text": "Mobile cover for the cautious warrior."
+    },
+    "healing_potion": {
+      "id": "healing_potion",
+      "name": "Healing Potion",
+      "description": "A ruby-red liquid that mends wounds.",
+      "category": "consumable",
+      "rarity": "common",
+      "base_value": 25,
+      "effect": {
+        "type": "heal",
+        "value": 30
+      },
+      "stackable": true,
+      "max_stack": 10,
+      "flavor_text": "Tastes like cherries and regret."
+    },
+    "greater_healing_potion": {
+      "id": "greater_healing_potion",
+      "name": "Greater Healing Potion",
+      "description": "A potent healing draught that rapidly restores vitality.",
+      "category": "consumable",
+      "rarity": "uncommon",
+      "base_value": 75,
+      "effect": {
+        "type": "heal",
+        "value": 75
+      },
+      "stackable": true,
+      "max_stack": 5,
+      "flavor_text": "Now with 200% more healing!"
+    },
+    "antidote": {
+      "id": "antidote",
+      "name": "Antidote",
+      "description": "Neutralizes most common poisons.",
+      "category": "consumable",
+      "rarity": "common",
+      "base_value": 20,
+      "effect": {
+        "type": "cure_poison"
+      },
+      "stackable": true,
+      "max_stack": 10,
+      "flavor_text": "Prevention is better, but this is cheaper."
+    },
+    "mana_potion": {
+      "id": "mana_potion",
+      "name": "Mana Potion",
+      "description": "A shimmering blue elixir that restores magical energy.",
+      "category": "consumable",
+      "rarity": "common",
+      "base_value": 30,
+      "effect": {
+        "type": "restore_mana",
+        "value": 25
+      },
+      "stackable": true,
+      "max_stack": 10,
+      "flavor_text": "Liquidized starlight, or so they say."
+    },
+    "elixir_of_strength": {
+      "id": "elixir_of_strength",
+      "name": "Elixir of Strength",
+      "description": "Temporarily grants incredible strength.",
+      "category": "consumable",
+      "rarity": "uncommon",
+      "base_value": 60,
+      "effect": {
+        "type": "buff",
+        "stat": "attack",
+        "value": 10,
+        "duration": 30
+      },
+      "stackable": true,
+      "max_stack": 5,
+      "flavor_text": "Side effects may include overconfidence."
+    },
+    "smoke_bomb": {
+      "id": "smoke_bomb",
+      "name": "Smoke Bomb",
+      "description": "Creates a cloud of obscuring smoke.",
+      "category": "consumable",
+      "rarity": "uncommon",
+      "base_value": 30,
+      "effect": {
+        "type": "escape",
+        "success_chance": 90
+      },
+      "stackable": true,
+      "max_stack": 5,
+      "flavor_text": "For tactical retreats, not cowardice."
+    },
+    "torch": {
+      "id": "torch",
+      "name": "Torch",
+      "description": "A wooden torch soaked in pitch.",
+      "category": "tool",
+      "rarity": "common",
+      "base_value": 2,
+      "effect": {
+        "type": "light_source",
+        "radius": 4,
+        "duration": 100
+      },
+      "stackable": true,
+      "max_stack": 10,
+      "flavor_text": "Let there be light!"
+    },
+    "lantern": {
+      "id": "lantern",
+      "name": "Lantern",
+      "description": "A hooded lantern providing steady light.",
+      "category": "tool",
+      "rarity": "uncommon",
+      "base_value": 35,
+      "effect": {
+        "type": "light_source",
+        "radius": 5,
+        "duration": -1
+      },
+      "requires": "lantern_oil",
+      "slot": "off_hand",
+      "flavor_text": "A civilized light for uncivilized places."
+    },
+    "rope": {
+      "id": "rope",
+      "name": "Rope",
+      "description": "Fifty feet of sturdy hemp rope.",
+      "category": "tool",
+      "rarity": "common",
+      "base_value": 10,
+      "uses": ["climb", "tie", "descend"],
+      "stackable": false,
+      "flavor_text": "An adventurer's best friend, besides their sword."
+    },
+    "lockpick": {
+      "id": "lockpick",
+      "name": "Lockpick",
+      "description": "A set of thieves' tools for opening locks.",
+      "category": "tool",
+      "rarity": "common",
+      "base_value": 15,
+      "effect": {
+        "type": "unlock",
+        "skill_bonus": 5,
+        "break_chance": 20
+      },
+      "stackable": true,
+      "max_stack": 20,
+      "flavor_text": "Doors are just suggestions."
+    },
+    "grappling_hook": {
+      "id": "grappling_hook",
+      "name": "Grappling Hook",
+      "description": "A three-pronged hook for scaling walls.",
+      "category": "tool",
+      "rarity": "uncommon",
+      "base_value": 40,
+      "uses": ["climb_walls", "cross_gaps", "retrieve_items"],
+      "requires": "rope",
+      "stackable": false,
+      "flavor_text": "Vertical solutions for horizontal problems."
+    },
+    "ancient_key": {
+      "id": "ancient_key",
+      "name": "Ancient Key",
+      "description": "An ornate key of unknown origin. It hums with latent power.",
+      "category": "key_item",
+      "rarity": "rare",
+      "base_value": 0,
+      "unlocks": ["ancient_door"],
+      "quest_item": true,
+      "flavor_text": "What ancient lock awaits this ancient key?"
+    },
+    "dungeon_map_fragment": {
+      "id": "dungeon_map_fragment",
+      "name": "Map Fragment",
+      "description": "A torn piece of parchment showing partial dungeon layout.",
+      "category": "key_item",
+      "rarity": "uncommon",
+      "base_value": 50,
+      "effect": {
+        "type": "reveal_map",
+        "radius": 5
+      },
+      "quest_item": false,
+      "flavor_text": "Three more pieces and you might have something."
+    },
+    "soul_gem": {
+      "id": "soul_gem",
+      "name": "Soul Gem",
+      "description": "A crystallized fragment of life essence.",
+      "category": "material",
+      "rarity": "rare",
+      "base_value": 200,
+      "crafting_uses": ["enchanting", "resurrection"],
+      "stackable": true,
+      "max_stack": 10,
+      "flavor_text": "Handle with philosophical care."
+    },
+    "dragon_scale": {
+      "id": "dragon_scale",
+      "name": "Dragon Scale",
+      "description": "A single scale from a dragon's hide, still warm.",
+      "category": "material",
+      "rarity": "epic",
+      "base_value": 750,
+      "crafting_uses": ["dragon_armor", "fire_resistance_potion"],
+      "stackable": true,
+      "max_stack": 5,
+      "flavor_text": "The dragon probably wants this back."
+    },
+    "scroll_fireball": {
+      "id": "scroll_fireball",
+      "name": "Scroll of Fireball",
+      "description": "A magical scroll containing a fireball spell.",
+      "category": "scroll",
+      "rarity": "rare",
+      "base_value": 150,
+      "effect": {
+        "type": "spell",
+        "spell": "fireball",
+        "damage": 40,
+        "area": 3
+      },
+      "stackable": true,
+      "max_stack": 3,
+      "flavor_text": "Point away from face before reading."
+    },
+    "scroll_teleport": {
+      "id": "scroll_teleport",
+      "name": "Scroll of Teleport",
+      "description": "A magical scroll that transports you to safety.",
+      "category": "scroll",
+      "rarity": "rare",
+      "base_value": 200,
+      "effect": {
+        "type": "spell",
+        "spell": "teleport",
+        "destination": "last_safe_room"
+      },
+      "stackable": true,
+      "max_stack": 3,
+      "flavor_text": "Emergency exit, magical edition."
+    },
+    "scroll_light": {
+      "id": "scroll_light",
+      "name": "Scroll of Light",
+      "description": "A magical scroll that creates lasting illumination.",
+      "category": "scroll",
+      "rarity": "common",
+      "base_value": 25,
+      "effect": {
+        "type": "spell",
+        "spell": "light",
+        "radius": 6,
+        "duration": 50
+      },
+      "stackable": true,
+      "max_stack": 5,
+      "flavor_text": "Let there be light, in scroll form."
+    },
+    "gold_coins": {
+      "id": "gold_coins",
+      "name": "Gold Coins",
+      "description": "The universal currency of adventurers.",
+      "category": "treasure",
+      "rarity": "common",
+      "base_value": 1,
+      "stackable": true,
+      "max_stack": 9999,
+      "flavor_text": "Accepted everywhere, even in dungeons."
+    },
+    "rare_gem": {
+      "id": "rare_gem",
+      "name": "Rare Gem",
+      "description": "A precious gemstone of exceptional quality.",
+      "category": "treasure",
+      "rarity": "rare",
+      "base_value": 250,
+      "gem_types": ["ruby", "sapphire", "emerald", "diamond"],
+      "stackable": false,
+      "flavor_text": "Pretty. Valuable. Probably stolen from somewhere."
+    },
+    "crown_of_the_depths": {
+      "id": "crown_of_the_depths",
+      "name": "Crown of the Depths",
+      "description": "An ancient crown pulsing with dark power.",
+      "category": "treasure",
+      "rarity": "legendary",
+      "base_value": 10000,
+      "stats": {
+        "magic": 30,
+        "defense": 15,
+        "dark_resistance": 50
+      },
+      "slot": "head",
+      "cursed": true,
+      "curse_effect": "cannot_remove",
+      "quest_item": true,
+      "flavor_text": "Heavy is the head that wears the crown. Literally."
+    },
+    "tattered_map": {
+      "id": "tattered_map",
+      "name": "Tattered Map",
+      "description": "A dying adventurer's map, marked with warnings.",
+      "category": "key_item",
+      "rarity": "uncommon",
+      "base_value": 0,
+      "effect": {
+        "type": "reveal_map",
+        "radius": 10,
+        "shows_traps": true
+      },
+      "quest_item": true,
+      "flavor_text": "X marks the spot. And the traps. And the monsters."
+    },
+    "poison_vial": {
+      "id": "poison_vial",
+      "name": "Poison Vial",
+      "description": "A vial of potent poison for coating weapons.",
+      "category": "consumable",
+      "rarity": "uncommon",
+      "base_value": 40,
+      "effect": {
+        "type": "apply_poison",
+        "damage_per_turn": 5,
+        "duration": 5,
+        "attacks": 3
+      },
+      "stackable": true,
+      "max_stack": 5,
+      "flavor_text": "Not for internal use. Seriously."
+    }
+  },
+  "equipment_slots": {
+    "head": "Helmets, crowns, and headwear",
+    "body": "Armor and robes",
+    "main_hand": "Primary weapon",
+    "off_hand": "Shield, secondary weapon, or tool",
+    "two_hand": "Two-handed weapons (uses both hand slots)",
+    "ring_1": "First ring slot",
+    "ring_2": "Second ring slot",
+    "amulet": "Necklace and amulets"
+  }
+}

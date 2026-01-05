@@ -1,0 +1,389 @@
+{
+  "version": "1.0.0",
+  "description": "Room and map templates for Tile-Crawler",
+  "room_sizes": {
+    "tiny": {"width": [5, 7], "height": [5, 7]},
+    "small": {"width": [8, 10], "height": [8, 10]},
+    "medium": {"width": [11, 15], "height": [11, 15]},
+    "large": {"width": [16, 20], "height": [16, 20]},
+    "huge": {"width": [21, 30], "height": [21, 30]}
+  },
+  "templates": {
+    "entrance_chamber": {
+      "id": "entrance_chamber",
+      "name": "Entrance Chamber",
+      "description": "The beginning of your descent",
+      "size": "medium",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░@░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░+░░░░▓",
+        "▓▓▓▓▓ ▓▓▓▓▓"
+      ],
+      "exits": {"south": true},
+      "features": ["torch_wall_north", "torch_wall_east", "torch_wall_west"],
+      "spawn_points": [],
+      "safe_room": true,
+      "narrative_hooks": [
+        "The entrance seals behind you. There is no going back.",
+        "Torchlight flickers against ancient stone.",
+        "The adventure begins here, in this forgotten place."
+      ]
+    },
+    "basic_corridor": {
+      "id": "basic_corridor",
+      "name": "Stone Corridor",
+      "description": "A simple connecting passage",
+      "size": "small",
+      "map": [
+        "▓▓▓ ▓▓▓",
+        "▓░░░░░▓",
+        "▓░░░░░▓",
+        "▓░░░░░▓",
+        "▓░░░░░▓",
+        "▓░░░░░▓",
+        "▓▓▓ ▓▓▓"
+      ],
+      "exits": {"north": true, "south": true},
+      "features": [],
+      "spawn_points": [{"x": 3, "y": 3, "type": "enemy", "chance": 30}],
+      "narrative_hooks": [
+        "The corridor stretches into shadow.",
+        "Your footsteps echo off cold stone.",
+        "The walls bear scratches, as if something clawed at them."
+      ]
+    },
+    "crossroads": {
+      "id": "crossroads",
+      "name": "Crossroads",
+      "description": "A four-way intersection",
+      "size": "small",
+      "map": [
+        "▓▓▓ ▓▓▓",
+        "▓░░░░░▓",
+        "▓░░░░░▓",
+        " ░░░░░ ",
+        "▓░░░░░▓",
+        "▓░░░░░▓",
+        "▓▓▓ ▓▓▓"
+      ],
+      "exits": {"north": true, "south": true, "east": true, "west": true},
+      "features": ["center_pillar"],
+      "spawn_points": [{"x": 3, "y": 3, "type": "npc", "chance": 15}],
+      "narrative_hooks": [
+        "Four paths diverge. Each promises danger.",
+        "Which way now? The dungeon offers no guidance.",
+        "A weathered signpost points in all directions."
+      ]
+    },
+    "treasure_room": {
+      "id": "treasure_room",
+      "name": "Treasure Chamber",
+      "description": "A room that promises riches",
+      "size": "medium",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░■░■░░░▓",
+        " ░░░░░░░░░▓",
+        "▓░░░■░■░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓▓▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"west": true},
+      "features": ["chests"],
+      "spawn_points": [
+        {"x": 4, "y": 3, "type": "chest", "chance": 100},
+        {"x": 6, "y": 3, "type": "chest", "chance": 100},
+        {"x": 4, "y": 5, "type": "chest", "chance": 100},
+        {"x": 6, "y": 5, "type": "mimic", "chance": 25}
+      ],
+      "trap_chance": 40,
+      "narrative_hooks": [
+        "Gold glitters in the torchlight. Too easy?",
+        "Chests line the walls. Some look... different.",
+        "Greed has killed many here. The bones prove it."
+      ]
+    },
+    "trap_corridor": {
+      "id": "trap_corridor",
+      "name": "Trapped Passage",
+      "description": "A corridor riddled with deadly traps",
+      "size": "medium",
+      "map": [
+        "▓▓▓ ▓▓▓▓▓",
+        "▓░^░░^░░▓",
+        "▓░░░░░░░▓",
+        "▓░^░░^░░▓",
+        "▓░░░░░░░▓",
+        "▓░^░░^░░▓",
+        "▓░░░░░░░▓",
+        "▓▓▓ ▓▓▓▓▓"
+      ],
+      "exits": {"north": true, "south": true},
+      "features": ["pressure_plates", "dart_holes"],
+      "spawn_points": [],
+      "traps": [
+        {"x": 2, "y": 1, "type": "dart_trap"},
+        {"x": 5, "y": 1, "type": "dart_trap"},
+        {"x": 2, "y": 3, "type": "pit_trap"},
+        {"x": 5, "y": 3, "type": "pit_trap"},
+        {"x": 2, "y": 5, "type": "blade_trap"},
+        {"x": 5, "y": 5, "type": "blade_trap"}
+      ],
+      "narrative_hooks": [
+        "The floor tiles don't quite match. Suspicious.",
+        "Small holes line the walls at chest height.",
+        "Bones crunch underfoot. Someone didn't watch their step."
+      ]
+    },
+    "altar_room": {
+      "id": "altar_room",
+      "name": "Ancient Altar",
+      "description": "A chamber of worship to forgotten gods",
+      "size": "medium",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░╬░░░░░▓",
+        " ░░░░░░░░░ ",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓░░░░░░░░░▓",
+        "▓▓▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"east": true, "west": true},
+      "features": ["altar", "candles", "offerings"],
+      "spawn_points": [
+        {"x": 4, "y": 3, "type": "altar", "chance": 100},
+        {"x": 5, "y": 6, "type": "enemy", "chance": 50}
+      ],
+      "interactive_elements": {
+        "altar": {
+          "actions": ["pray", "sacrifice", "examine"],
+          "effects": {
+            "pray": {"chance": 50, "positive": "blessing", "negative": "curse"},
+            "sacrifice": {"requires": "item", "reward": "random_buff"},
+            "examine": {"reveals": "lore"}
+          }
+        }
+      },
+      "narrative_hooks": [
+        "The altar radiates ancient power.",
+        "Offerings rot at the altar's base. Some are recent.",
+        "Do you dare seek the favor of forgotten gods?"
+      ]
+    },
+    "underground_lake": {
+      "id": "underground_lake",
+      "name": "Underground Lake",
+      "description": "A vast subterranean body of water",
+      "size": "large",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░░░░░░░▓",
+        "▓░░≈≈≈≈≈≈≈≈░░░▓",
+        "▓░≈≈≈≈≈≈≈≈≈≈░░▓",
+        " ░≈≈≈≈≈≈≈≈≈≈░░ ",
+        "▓░░≈≈≈≈≈≈≈≈░░░▓",
+        "▓░░░░░░░░░░░░░▓",
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"east": true, "west": true},
+      "features": ["water", "shore", "island"],
+      "spawn_points": [
+        {"x": 7, "y": 4, "type": "item", "chance": 30},
+        {"x": 3, "y": 6, "type": "enemy", "chance": 40}
+      ],
+      "environmental_effects": {
+        "water": {"passable": false, "swim_possible": true, "contains": ["water_enemies"]}
+      },
+      "narrative_hooks": [
+        "Dark water stretches into the cavern's depths.",
+        "Something ripples beneath the surface.",
+        "The shore is littered with waterlogged debris."
+      ]
+    },
+    "boss_arena": {
+      "id": "boss_arena",
+      "name": "Boss Chamber",
+      "description": "A grand chamber where something powerful waits",
+      "size": "huge",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        "▓░░░░░░░Ω░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        " ░░░░░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░░░░░▓",
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"west": true},
+      "features": ["pillars", "throne", "treasure_hoard"],
+      "spawn_points": [
+        {"x": 9, "y": 5, "type": "boss", "chance": 100}
+      ],
+      "boss_room": true,
+      "locked_until_clear": true,
+      "narrative_hooks": [
+        "The chamber falls silent as you enter.",
+        "Something ancient stirs at your presence.",
+        "This is it. There's no turning back now."
+      ]
+    },
+    "safe_room": {
+      "id": "safe_room",
+      "name": "Safe Haven",
+      "description": "A rare sanctuary in the depths",
+      "size": "small",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░▓",
+        "▓░░♨░░░░▓",
+        "▓░░░░░░░▓",
+        " ░░░░░☺░▓",
+        "▓░░░░░░░▓",
+        "▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"west": true},
+      "features": ["campfire", "bedroll", "merchant"],
+      "spawn_points": [
+        {"x": 3, "y": 2, "type": "campfire", "chance": 100},
+        {"x": 6, "y": 4, "type": "npc", "npc_id": "wandering_merchant", "chance": 70}
+      ],
+      "safe_room": true,
+      "no_enemy_spawn": true,
+      "rest_available": true,
+      "narrative_hooks": [
+        "A rare pocket of safety in the darkness.",
+        "The fire's warmth is a blessed relief.",
+        "Someone has made camp here before you."
+      ]
+    },
+    "prison_cells": {
+      "id": "prison_cells",
+      "name": "Prison Block",
+      "description": "Cells for the forgotten and condemned",
+      "size": "medium",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓",
+        "▓+▓░░░░░░▓+▓",
+        "▓░▓░░░░░░▓░▓",
+        "▓░▓░░░░░░▓░▓",
+        "▓░▓▓▓▓▓▓▓▓░▓",
+        " ░░░░░░░░░░ ",
+        "▓░▓▓▓▓▓▓▓▓░▓",
+        "▓░▓░░░░░░▓░▓",
+        "▓░▓░░░░░░▓░▓",
+        "▓+▓░░░░░░▓+▓",
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"east": true, "west": true},
+      "features": ["cells", "locked_doors", "chains"],
+      "spawn_points": [
+        {"x": 2, "y": 2, "type": "npc", "npc_id": "imprisoned_mage", "chance": 30},
+        {"x": 10, "y": 8, "type": "item", "chance": 50},
+        {"x": 2, "y": 8, "type": "enemy", "chance": 40}
+      ],
+      "interactive_elements": {
+        "cell_doors": {"locked": true, "requires": "lockpick_or_key"}
+      },
+      "narrative_hooks": [
+        "Rusted bars hold back darkness. And sometimes, more.",
+        "Not all prisoners here were criminals.",
+        "Something whimpers from a distant cell."
+      ]
+    },
+    "library": {
+      "id": "library",
+      "name": "Abandoned Library",
+      "description": "A repository of forgotten knowledge",
+      "size": "medium",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░░░░░▓",
+        "▓░║░░║░░║░░░▓",
+        "▓░║░░║░░║░░░▓",
+        " ░░░░░░░░░░░ ",
+        "▓░║░░║░░║░░░▓",
+        "▓░║░░║░░║░░░▓",
+        "▓░░░░░░░░░░░▓",
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"east": true, "west": true},
+      "features": ["bookshelves", "reading_desk", "hidden_compartment"],
+      "spawn_points": [
+        {"x": 6, "y": 4, "type": "item", "item_type": "scroll", "chance": 60},
+        {"x": 10, "y": 7, "type": "enemy", "chance": 30}
+      ],
+      "interactive_elements": {
+        "bookshelves": {"action": "search", "finds": ["lore", "scroll", "map_fragment"]}
+      },
+      "narrative_hooks": [
+        "Dust motes dance in shafts of impossible light.",
+        "Knowledge is power. And power is dangerous.",
+        "Some books here should never be opened."
+      ]
+    },
+    "throne_room": {
+      "id": "throne_room",
+      "name": "Throne Room",
+      "description": "The seat of a long-dead ruler",
+      "size": "large",
+      "map": [
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓",
+        "▓░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░▓",
+        "▓░░░░░░╬░░░░░░▓",
+        "▓░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░▓",
+        " ░░░░░░░░░░░░░ ",
+        "▓░░░░░░░░░░░░░▓",
+        "▓░░░░░░░░░░░░░▓",
+        "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓"
+      ],
+      "exits": {"east": true, "west": true},
+      "features": ["throne", "carpet", "banners", "crown_pedestal"],
+      "spawn_points": [
+        {"x": 7, "y": 3, "type": "throne", "chance": 100},
+        {"x": 7, "y": 5, "type": "enemy", "enemy_id": "vampire", "chance": 40}
+      ],
+      "interactive_elements": {
+        "throne": {"action": "sit", "effect": "crown_quest_trigger"}
+      },
+      "narrative_hooks": [
+        "An empty throne awaits its next occupant.",
+        "Tattered banners speak of forgotten glory.",
+        "The crown is missing. Where could it be?"
+      ]
+    }
+  },
+  "procedural_rules": {
+    "corridor_length": {"min": 3, "max": 8},
+    "room_density": 0.6,
+    "dead_end_chance": 0.2,
+    "loop_chance": 0.15,
+    "treasure_room_rarity": 0.1,
+    "safe_room_frequency": 8,
+    "boss_room_depth_minimum": 5
+  },
+  "connection_types": {
+    "door": {"char": "+", "locked_chance": 0.3},
+    "open": {"char": " ", "locked_chance": 0},
+    "secret": {"char": "▓", "locked_chance": 0, "hidden": true, "reveal_chance": 0.2},
+    "bars": {"char": "#", "locked_chance": 0.8, "requires": "key_or_force"}
+  }
+}

@@ -1,0 +1,285 @@
+{
+  "version": "1.0.0",
+  "description": "Tile definitions for Tile-Crawler dungeon rendering",
+  "tiles": {
+    "wall": {
+      "char": "▓",
+      "name": "Wall",
+      "description": "A solid stone wall, cold and unyielding",
+      "passable": false,
+      "opaque": true,
+      "category": "structure"
+    },
+    "floor": {
+      "char": "░",
+      "name": "Floor",
+      "description": "Rough stone floor, worn smooth by countless footsteps",
+      "passable": true,
+      "opaque": false,
+      "category": "terrain"
+    },
+    "player": {
+      "char": "@",
+      "name": "Player",
+      "description": "You, the brave adventurer",
+      "passable": false,
+      "opaque": false,
+      "category": "entity"
+    },
+    "item": {
+      "char": "$",
+      "name": "Item",
+      "description": "Something of interest lies here",
+      "passable": true,
+      "opaque": false,
+      "category": "interactive"
+    },
+    "npc": {
+      "char": "☺",
+      "name": "NPC",
+      "description": "A figure stands here",
+      "passable": false,
+      "opaque": false,
+      "category": "entity"
+    },
+    "water": {
+      "char": "≈",
+      "name": "Water",
+      "description": "Dark water ripples gently",
+      "passable": false,
+      "opaque": false,
+      "category": "terrain",
+      "hazard": true
+    },
+    "mountain": {
+      "char": "▲",
+      "name": "Mountain",
+      "description": "Jagged peaks rise impossibly high",
+      "passable": false,
+      "opaque": true,
+      "category": "terrain"
+    },
+    "tree": {
+      "char": "♣",
+      "name": "Tree",
+      "description": "A gnarled tree, twisted by age and darkness",
+      "passable": false,
+      "opaque": true,
+      "category": "terrain"
+    },
+    "door_closed": {
+      "char": "+",
+      "name": "Closed Door",
+      "description": "A heavy wooden door blocks the way",
+      "passable": false,
+      "opaque": true,
+      "category": "structure",
+      "interactive": true
+    },
+    "door_open": {
+      "char": "/",
+      "name": "Open Door",
+      "description": "An open doorway",
+      "passable": true,
+      "opaque": false,
+      "category": "structure"
+    },
+    "stairs_down": {
+      "char": ">",
+      "name": "Stairs Down",
+      "description": "Stone steps spiral downward into darkness",
+      "passable": true,
+      "opaque": false,
+      "category": "structure",
+      "transition": "down"
+    },
+    "stairs_up": {
+      "char": "<",
+      "name": "Stairs Up",
+      "description": "Stone steps lead upward toward light",
+      "passable": true,
+      "opaque": false,
+      "category": "structure",
+      "transition": "up"
+    },
+    "chest": {
+      "char": "■",
+      "name": "Chest",
+      "description": "A sturdy chest, perhaps containing treasure",
+      "passable": false,
+      "opaque": false,
+      "category": "interactive",
+      "interactive": true
+    },
+    "chest_open": {
+      "char": "□",
+      "name": "Open Chest",
+      "description": "An empty chest, already plundered",
+      "passable": false,
+      "opaque": false,
+      "category": "interactive"
+    },
+    "trap": {
+      "char": "^",
+      "name": "Trap",
+      "description": "A concealed trap mechanism",
+      "passable": true,
+      "opaque": false,
+      "category": "hazard",
+      "hidden": true,
+      "hazard": true
+    },
+    "altar": {
+      "char": "╬",
+      "name": "Altar",
+      "description": "An ancient altar, emanating faint power",
+      "passable": false,
+      "opaque": false,
+      "category": "interactive",
+      "interactive": true
+    },
+    "torch": {
+      "char": "†",
+      "name": "Wall Torch",
+      "description": "A flickering torch mounted on the wall",
+      "passable": false,
+      "opaque": false,
+      "category": "structure",
+      "light_source": true,
+      "light_radius": 3
+    },
+    "campfire": {
+      "char": "♨",
+      "name": "Campfire",
+      "description": "A crackling fire provides warmth and light",
+      "passable": false,
+      "opaque": false,
+      "category": "interactive",
+      "light_source": true,
+      "light_radius": 4
+    },
+    "lava": {
+      "char": "~",
+      "name": "Lava",
+      "description": "Molten rock bubbles menacingly",
+      "passable": false,
+      "opaque": false,
+      "category": "terrain",
+      "hazard": true,
+      "damage": 50,
+      "light_source": true,
+      "light_radius": 2
+    },
+    "pit": {
+      "char": "○",
+      "name": "Pit",
+      "description": "A yawning chasm drops into nothingness",
+      "passable": false,
+      "opaque": false,
+      "category": "hazard",
+      "hazard": true
+    },
+    "crystal": {
+      "char": "◊",
+      "name": "Crystal",
+      "description": "A luminescent crystal pulses with inner light",
+      "passable": false,
+      "opaque": false,
+      "category": "interactive",
+      "light_source": true,
+      "light_radius": 2
+    },
+    "grave": {
+      "char": "┼",
+      "name": "Grave",
+      "description": "A weathered gravestone marks a final resting place",
+      "passable": false,
+      "opaque": false,
+      "category": "structure"
+    },
+    "portal": {
+      "char": "◎",
+      "name": "Portal",
+      "description": "Swirling energy forms a gateway to elsewhere",
+      "passable": true,
+      "opaque": false,
+      "category": "structure",
+      "transition": "portal"
+    },
+    "web": {
+      "char": "#",
+      "name": "Spider Web",
+      "description": "Thick strands of webbing block the passage",
+      "passable": true,
+      "opaque": false,
+      "category": "hazard",
+      "movement_penalty": 0.5
+    },
+    "grass": {
+      "char": "\"",
+      "name": "Grass",
+      "description": "Tall grass sways gently",
+      "passable": true,
+      "opaque": false,
+      "category": "terrain"
+    },
+    "corpse": {
+      "char": "%",
+      "name": "Corpse",
+      "description": "The remains of a fallen creature",
+      "passable": true,
+      "opaque": false,
+      "category": "interactive",
+      "interactive": true
+    },
+    "enemy": {
+      "char": "&",
+      "name": "Enemy",
+      "description": "A hostile creature lurks here",
+      "passable": false,
+      "opaque": false,
+      "category": "entity"
+    },
+    "boss": {
+      "char": "Ω",
+      "name": "Boss",
+      "description": "A powerful foe awaits",
+      "passable": false,
+      "opaque": false,
+      "category": "entity"
+    }
+  },
+  "wall_variants": {
+    "corner_tl": "╔",
+    "corner_tr": "╗",
+    "corner_bl": "╚",
+    "corner_br": "╝",
+    "horizontal": "═",
+    "vertical": "║",
+    "t_down": "╦",
+    "t_up": "╩",
+    "t_right": "╠",
+    "t_left": "╣",
+    "cross": "╬"
+  },
+  "thin_wall_variants": {
+    "corner_tl": "┌",
+    "corner_tr": "┐",
+    "corner_bl": "└",
+    "corner_br": "┘",
+    "horizontal": "─",
+    "vertical": "│",
+    "t_down": "┬",
+    "t_up": "┴",
+    "t_right": "├",
+    "t_left": "┤",
+    "cross": "┼"
+  },
+  "categories": {
+    "structure": "Static structural elements like walls and doors",
+    "terrain": "Natural terrain features",
+    "entity": "Living beings (player, NPCs, enemies)",
+    "interactive": "Objects that can be interacted with",
+    "hazard": "Dangerous elements that can harm the player"
+  }
+}

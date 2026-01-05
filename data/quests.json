@@ -1,0 +1,526 @@
+{
+  "version": "1.0.0",
+  "description": "Quest definitions for Tile-Crawler",
+  "quest_types": {
+    "main": "Primary storyline quests",
+    "side": "Optional quests from NPCs",
+    "exploration": "Discovery-based quests",
+    "collection": "Gather specific items",
+    "elimination": "Defeat specific enemies",
+    "rescue": "Save NPCs in peril",
+    "mystery": "Uncover hidden truths"
+  },
+  "quests": {
+    "descent_begins": {
+      "id": "descent_begins",
+      "name": "The Descent Begins",
+      "type": "main",
+      "description": "Enter the dungeon and discover its secrets",
+      "quest_giver": "automatic",
+      "prerequisites": [],
+      "objectives": [
+        {
+          "id": "enter_dungeon",
+          "description": "Enter the dungeon",
+          "type": "reach_location",
+          "target": "entrance_chamber",
+          "complete": false
+        },
+        {
+          "id": "explore_three_rooms",
+          "description": "Explore at least 3 rooms",
+          "type": "explore",
+          "target_count": 3,
+          "current_count": 0,
+          "complete": false
+        },
+        {
+          "id": "find_first_clue",
+          "description": "Discover a clue about the dungeon's purpose",
+          "type": "find_item",
+          "target": "ancient_inscription",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 50,
+        "items": ["dungeon_map_fragment"],
+        "unlocks": ["hermit_wisdom", "knights_honor"]
+      },
+      "narrative": {
+        "start": "The entrance seals behind you. Whatever brought you here, there's no turning back now.",
+        "progress": "Each room reveals more of this place's dark history.",
+        "complete": "You've taken your first steps into darkness. The dungeon has accepted you."
+      }
+    },
+    "hermit_wisdom": {
+      "id": "hermit_wisdom",
+      "name": "The Hermit's Wisdom",
+      "type": "side",
+      "description": "Learn the secrets of the depths from the Old Hermit",
+      "quest_giver": "old_hermit",
+      "prerequisites": ["descent_begins"],
+      "objectives": [
+        {
+          "id": "find_hermit",
+          "description": "Find the Old Hermit",
+          "type": "find_npc",
+          "target": "old_hermit",
+          "complete": false
+        },
+        {
+          "id": "bring_offering",
+          "description": "Bring him something of value",
+          "type": "deliver_item",
+          "target_items": ["rare_gem", "soul_gem", "ancient_key"],
+          "target_npc": "old_hermit",
+          "complete": false
+        },
+        {
+          "id": "hear_wisdom",
+          "description": "Listen to his tale",
+          "type": "dialogue",
+          "target_npc": "old_hermit",
+          "dialogue_tree": "hermit_lore",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 100,
+        "items": ["scroll_light", "tattered_map"],
+        "knowledge": ["dungeon_history", "boss_weakness_hint"]
+      },
+      "narrative": {
+        "start": "The hermit's eyes gleam with secrets. Perhaps he will share them, for a price.",
+        "progress": "He accepts your offering, nodding slowly.",
+        "complete": "The hermit's words paint a picture of ancient catastrophe. Now you understand what you face."
+      }
+    },
+    "knights_honor": {
+      "id": "knights_honor",
+      "name": "A Knight's Honor",
+      "type": "side",
+      "description": "Help Sir Aldric fulfill his final duty",
+      "quest_giver": "lost_knight",
+      "prerequisites": ["descent_begins"],
+      "objectives": [
+        {
+          "id": "speak_to_knight",
+          "description": "Speak with Sir Aldric",
+          "type": "dialogue",
+          "target_npc": "lost_knight",
+          "complete": false
+        },
+        {
+          "id": "find_fallen_brothers",
+          "description": "Find the remains of his fallen brothers",
+          "type": "find_location",
+          "target_count": 3,
+          "target": "knight_remains",
+          "current_count": 0,
+          "complete": false
+        },
+        {
+          "id": "retrieve_order_banner",
+          "description": "Retrieve the Order's banner",
+          "type": "find_item",
+          "target": "tattered_banner",
+          "complete": false
+        },
+        {
+          "id": "return_to_knight",
+          "description": "Return to Sir Aldric",
+          "type": "return_to_npc",
+          "target_npc": "lost_knight",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 150,
+        "items": ["silver_blade"],
+        "companion": "lost_knight"
+      },
+      "narrative": {
+        "start": "The knight's eyes betray centuries of grief. 'My brothers... they deserve better than this.'",
+        "progress": "Each set of remains you find tells a story of courage and tragedy.",
+        "complete": "'You have restored their honor. And mine. I am in your debt, adventurer.'"
+      }
+    },
+    "free_the_mage": {
+      "id": "free_the_mage",
+      "name": "Breaking the Chains",
+      "type": "rescue",
+      "description": "Free Seraphina from her magical prison",
+      "quest_giver": "imprisoned_mage",
+      "prerequisites": ["descent_begins"],
+      "objectives": [
+        {
+          "id": "discover_prison",
+          "description": "Find the imprisoned mage",
+          "type": "find_npc",
+          "target": "imprisoned_mage",
+          "complete": false
+        },
+        {
+          "id": "destroy_stone_1",
+          "description": "Destroy the first binding stone",
+          "type": "destroy",
+          "target": "binding_stone_1",
+          "complete": false
+        },
+        {
+          "id": "destroy_stone_2",
+          "description": "Destroy the second binding stone",
+          "type": "destroy",
+          "target": "binding_stone_2",
+          "complete": false
+        },
+        {
+          "id": "destroy_stone_3",
+          "description": "Destroy the third binding stone",
+          "type": "destroy",
+          "target": "binding_stone_3",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 200,
+        "items": ["staff_of_flames", "scroll_fireball"],
+        "companion": "imprisoned_mage"
+      },
+      "narrative": {
+        "start": "'Please,' she begs, 'three stones anchor my prison. Destroy them, and I go free.'",
+        "progress": "Each stone shattered weakens the barrier. Seraphina's hope grows.",
+        "complete": "The ward shatters. Seraphina steps free, power crackling around her. 'I owe you everything.'"
+      }
+    },
+    "find_the_vault": {
+      "id": "find_the_vault",
+      "name": "The Sealed Vault",
+      "type": "main",
+      "description": "Find and open the legendary vault at the dungeon's heart",
+      "quest_giver": "lost_knight",
+      "prerequisites": ["knights_honor"],
+      "objectives": [
+        {
+          "id": "find_key_fragment_1",
+          "description": "Find the first key fragment",
+          "type": "find_item",
+          "target": "key_fragment_1",
+          "hint": "Held by the one who never rests",
+          "complete": false
+        },
+        {
+          "id": "find_key_fragment_2",
+          "description": "Find the second key fragment",
+          "type": "find_item",
+          "target": "key_fragment_2",
+          "hint": "Hidden where knowledge gathers dust",
+          "complete": false
+        },
+        {
+          "id": "find_key_fragment_3",
+          "description": "Find the third key fragment",
+          "type": "find_item",
+          "target": "key_fragment_3",
+          "hint": "Guarded by stone that walks",
+          "complete": false
+        },
+        {
+          "id": "assemble_key",
+          "description": "Assemble the vault key",
+          "type": "craft",
+          "recipe": ["key_fragment_1", "key_fragment_2", "key_fragment_3"],
+          "result": "vault_key",
+          "complete": false
+        },
+        {
+          "id": "open_vault",
+          "description": "Open the sealed vault",
+          "type": "use_item",
+          "target_item": "vault_key",
+          "target_location": "vault_door",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 500,
+        "items": ["crown_of_the_depths", "legendary_weapon"],
+        "unlocks": ["final_descent"]
+      },
+      "narrative": {
+        "start": "'The vault,' the knight says, 'holds what we died protecting. The key was broken, its pieces scattered.'",
+        "progress": "Each fragment pulses with power. Together, they will open what should stay closed.",
+        "complete": "The vault groans open. Inside lies power beyond measure... and a warning."
+      }
+    },
+    "spirit_release": {
+      "id": "spirit_release",
+      "name": "Rest for the Restless",
+      "type": "mystery",
+      "description": "Help the dungeon spirits find peace",
+      "quest_giver": "dungeon_spirit",
+      "prerequisites": ["descent_begins"],
+      "objectives": [
+        {
+          "id": "encounter_spirit",
+          "description": "Encounter the Whisper",
+          "type": "find_npc",
+          "target": "dungeon_spirit",
+          "complete": false
+        },
+        {
+          "id": "find_spirit_anchors",
+          "description": "Find what binds the spirits to this place",
+          "type": "find_item",
+          "target": "spirit_anchor",
+          "target_count": 5,
+          "current_count": 0,
+          "complete": false
+        },
+        {
+          "id": "destroy_anchors",
+          "description": "Destroy the anchors at the altar",
+          "type": "use_item",
+          "target_item": "spirit_anchor",
+          "target_location": "release_altar",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 250,
+        "items": ["ghost_lantern"],
+        "abilities": ["see_invisible"],
+        "area_effect": "spirits_pacified"
+      },
+      "narrative": {
+        "start": "'We are... trapped. Find what holds us. Release us.'",
+        "progress": "Each anchor you collect weakens the curse that binds them.",
+        "complete": "The spirits rise, peaceful at last. 'Thank you,' they whisper, fading into light."
+      }
+    },
+    "dragon_slayer": {
+      "id": "dragon_slayer",
+      "name": "The Dragon's Lair",
+      "type": "elimination",
+      "description": "Slay the ancient dragon that dwells in the volcanic depths",
+      "quest_giver": "tavern_keeper",
+      "prerequisites": ["find_the_vault"],
+      "objectives": [
+        {
+          "id": "learn_of_dragon",
+          "description": "Learn about the dragon from tavern rumors",
+          "type": "dialogue",
+          "target_npc": "tavern_keeper",
+          "dialogue_tree": "dragon_rumors",
+          "complete": false
+        },
+        {
+          "id": "obtain_dragonbane",
+          "description": "Obtain a weapon that can harm the dragon",
+          "type": "find_item",
+          "target_items": ["vorpal_blade", "dragonslayer_sword", "staff_of_flames"],
+          "complete": false
+        },
+        {
+          "id": "reach_volcano",
+          "description": "Navigate to the volcanic depths",
+          "type": "reach_location",
+          "target": "dragon_lair",
+          "complete": false
+        },
+        {
+          "id": "slay_dragon",
+          "description": "Defeat the ancient dragon",
+          "type": "defeat_enemy",
+          "target": "ancient_dragon",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 2000,
+        "items": ["dragon_scale", "dragon_scale", "dragon_scale", "dragon_hoard"],
+        "title": "Dragonslayer",
+        "unlocks": ["true_ending"]
+      },
+      "narrative": {
+        "start": "'The dragon has slept for centuries. But it stirs now. Someone must stop it.'",
+        "progress": "The heat grows unbearable as you descend. The dragon awaits.",
+        "complete": "The ancient wyrm falls. Its hoard is yours, but more importantly, the depths are safe."
+      }
+    },
+    "final_descent": {
+      "id": "final_descent",
+      "name": "The Final Descent",
+      "type": "main",
+      "description": "Reach the heart of the dungeon and face what lurks there",
+      "quest_giver": "automatic",
+      "prerequisites": ["find_the_vault"],
+      "objectives": [
+        {
+          "id": "read_vault_warning",
+          "description": "Read the warning in the vault",
+          "type": "examine",
+          "target": "vault_inscription",
+          "complete": false
+        },
+        {
+          "id": "descend_to_void",
+          "description": "Enter the void between worlds",
+          "type": "reach_location",
+          "target": "void_entrance",
+          "complete": false
+        },
+        {
+          "id": "defeat_horror",
+          "description": "Confront the eldritch horror",
+          "type": "defeat_enemy",
+          "target": "eldritch_horror",
+          "complete": false
+        },
+        {
+          "id": "seal_the_rift",
+          "description": "Seal the rift to prevent further corruption",
+          "type": "use_item",
+          "target_item": "crown_of_the_depths",
+          "target_location": "void_heart",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 5000,
+        "items": ["hero_medallion"],
+        "ending": "true_ending",
+        "title": "Savior of the Depths"
+      },
+      "narrative": {
+        "start": "The vault contained not treasure, but a prison. And something has been trying to escape.",
+        "progress": "Reality bends around you as you descend into the impossible.",
+        "complete": "The horror is vanquished, the rift sealed. You emerge a legend. But the depths remember."
+      }
+    },
+    "collect_artifacts": {
+      "id": "collect_artifacts",
+      "name": "Relics of the Past",
+      "type": "collection",
+      "description": "Collect the scattered artifacts of a lost civilization",
+      "quest_giver": "old_hermit",
+      "prerequisites": ["hermit_wisdom"],
+      "objectives": [
+        {
+          "id": "find_artifact_1",
+          "description": "Find the Crystal of Seeing",
+          "type": "find_item",
+          "target": "crystal_of_seeing",
+          "complete": false
+        },
+        {
+          "id": "find_artifact_2",
+          "description": "Find the Tome of Binding",
+          "type": "find_item",
+          "target": "tome_of_binding",
+          "complete": false
+        },
+        {
+          "id": "find_artifact_3",
+          "description": "Find the Scepter of Command",
+          "type": "find_item",
+          "target": "scepter_of_command",
+          "complete": false
+        },
+        {
+          "id": "return_artifacts",
+          "description": "Return the artifacts to the hermit",
+          "type": "deliver_item",
+          "target_items": ["crystal_of_seeing", "tome_of_binding", "scepter_of_command"],
+          "target_npc": "old_hermit",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 300,
+        "items": ["rare_gem", "rare_gem", "scroll_teleport"],
+        "knowledge": ["true_history"]
+      },
+      "narrative": {
+        "start": "'The old ones left their tools behind. Find them, and I will teach you their secrets.'",
+        "progress": "Each artifact hums with ancient power.",
+        "complete": "'You have done well. Now let me show you what these truly are...'"
+      }
+    },
+    "goblin_problem": {
+      "id": "goblin_problem",
+      "name": "The Goblin Infestation",
+      "type": "elimination",
+      "description": "Clear out the goblin nest threatening the safe areas",
+      "quest_giver": "tavern_keeper",
+      "prerequisites": [],
+      "objectives": [
+        {
+          "id": "find_goblin_nest",
+          "description": "Find the goblin nest",
+          "type": "find_location",
+          "target": "goblin_nest",
+          "complete": false
+        },
+        {
+          "id": "kill_goblins",
+          "description": "Defeat the goblin horde",
+          "type": "defeat_enemy",
+          "target": "goblin",
+          "target_count": 10,
+          "current_count": 0,
+          "complete": false
+        },
+        {
+          "id": "kill_shaman",
+          "description": "Defeat the goblin shaman",
+          "type": "defeat_enemy",
+          "target": "goblin_shaman",
+          "complete": false
+        }
+      ],
+      "rewards": {
+        "xp": 150,
+        "gold": 100,
+        "items": ["healing_potion", "healing_potion", "lockpick"],
+        "reputation": {"tavern_keeper": 20}
+      },
+      "narrative": {
+        "start": "'Those goblins are getting bolder. Find their nest and put an end to this.'",
+        "progress": "Goblin bodies pile up. But their leader still commands.",
+        "complete": "'The goblins scatter without their shaman. We can rest easier now.'"
+      }
+    }
+  },
+  "quest_chains": {
+    "main_story": ["descent_begins", "find_the_vault", "final_descent"],
+    "knight_story": ["knights_honor", "find_the_vault"],
+    "mage_story": ["free_the_mage"],
+    "hermit_story": ["hermit_wisdom", "collect_artifacts"],
+    "dragon_story": ["find_the_vault", "dragon_slayer"]
+  },
+  "dynamic_quest_templates": {
+    "bounty_hunt": {
+      "type": "elimination",
+      "name_template": "Bounty: {enemy_name}",
+      "description_template": "A dangerous {enemy_name} has been spotted. Eliminate it.",
+      "objectives": [{"type": "defeat_enemy", "target": "{enemy_id}"}],
+      "reward_scaling": {"xp_multiplier": 1.5, "gold_base": 50}
+    },
+    "fetch_quest": {
+      "type": "collection",
+      "name_template": "Needed: {item_name}",
+      "description_template": "{npc_name} requires {item_count} {item_name}.",
+      "objectives": [{"type": "deliver_item", "target": "{item_id}", "count": "{item_count}"}],
+      "reward_scaling": {"xp_multiplier": 1.0, "gold_base": 20}
+    },
+    "exploration": {
+      "type": "exploration",
+      "name_template": "Uncharted: {area_name}",
+      "description_template": "Explore the {area_name} and report your findings.",
+      "objectives": [{"type": "reach_location", "target": "{area_id}"}],
+      "reward_scaling": {"xp_multiplier": 1.2, "gold_base": 30}
+    }
+  }
+}

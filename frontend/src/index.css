@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom font for tileset - fallback to monospace */
+@font-face {
+  font-family: 'DungeonTiles';
+  src: url('./fonts/DungeonTiles.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Base styles */
+:root {
+  --color-bg: #0a0a0f;
+  --color-panel: #1a1a2e;
+  --color-border: #3d3d5c;
+  --color-text: #e0e0e0;
+  --color-muted: #8888aa;
+  --color-accent: #7b68ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Courier New', monospace;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Tile map styling */
+.tile-map {
+  font-family: 'DungeonTiles', 'Courier New', monospace;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: pre;
+  user-select: none;
+}
+
+/* Tile colors */
+.tile-player { color: #00ff00; }
+.tile-enemy { color: #ff4444; }
+.tile-npc { color: #ffff00; }
+.tile-item { color: #00ffff; }
+.tile-wall { color: #6a6a8a; }
+.tile-floor { color: #4a4a6a; }
+.tile-water { color: #0088ff; }
+.tile-lava { color: #ff6600; }
+.tile-door { color: #8b5a2b; }
+.tile-stairs { color: #ffffff; }
+.tile-trap { color: #ff00ff; }
+.tile-chest { color: #ffd700; }
+
+/* Panel styling */
+.game-panel {
+  @apply bg-dungeon-panel border border-dungeon-border rounded-lg p-4;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-panel);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+/* Button base styles */
+.game-btn {
+  @apply px-4 py-2 rounded font-bold transition-all duration-150;
+  @apply border border-dungeon-border bg-dungeon-panel text-dungeon-text;
+  @apply hover:bg-dungeon-accent hover:border-dungeon-accent;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-dungeon-panel;
+  @apply focus:outline-none focus:ring-2 focus:ring-dungeon-accent focus:ring-opacity-50;
+}
+
+.game-btn-primary {
+  @apply bg-dungeon-accent border-dungeon-accent;
+  @apply hover:bg-opacity-80;
+}
+
+.game-btn-danger {
+  @apply bg-dungeon-danger border-dungeon-danger;
+  @apply hover:bg-opacity-80;
+}
+
+.game-btn-success {
+  @apply bg-dungeon-success border-dungeon-success;
+  @apply hover:bg-opacity-80;
+}
+
+/* Health bar */
+.health-bar {
+  @apply h-4 rounded overflow-hidden bg-dungeon-panel;
+}
+
+.health-bar-fill {
+  @apply h-full transition-all duration-300;
+}
+
+.health-bar-hp {
+  @apply bg-gradient-to-r from-red-600 to-red-500;
+}
+
+.health-bar-mana {
+  @apply bg-gradient-to-r from-blue-600 to-blue-500;
+}
+
+.health-bar-xp {
+  @apply bg-gradient-to-r from-purple-600 to-purple-500;
+}
+
+/* Combat flash animation */
+@keyframes damage-flash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5) hue-rotate(30deg); }
+}
+
+.damage-flash {
+  animation: damage-flash 0.2s ease-out;
+}
+
+/* Narrative text animation */
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.narrative-text {
+  overflow: hidden;
+  border-right: 2px solid var(--color-accent);
+  animation: typewriter 1s steps(40) forwards, blink 0.7s step-end infinite;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply inline-block w-6 h-6 border-2 rounded-full;
+  border-color: var(--color-accent) transparent var(--color-accent) transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tile-map {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tile-map {
+    font-size: 12px;
+  }
+}
