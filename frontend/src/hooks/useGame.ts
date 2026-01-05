@@ -1,8 +1,9 @@
 // Custom hook for game state management
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { api } from '../services/api';
-import type { GameState, ActionResponse, Direction, DialogueData } from '../types/game';
+import { getAudioEngine } from '../services/audioEngine';
+import type { GameState, ActionResponse, Direction, DialogueData, AudioBatch } from '../types/game';
 
 interface UseGameReturn {
   // State
@@ -33,6 +34,18 @@ export function useGame(): UseGameReturn {
   const [error, setError] = useState<string | null>(null);
   const [narrative, setNarrative] = useState<string>('');
   const [dialogueData, setDialogueData] = useState<DialogueData | null>(null);
+  const audioEngine = useRef(getAudioEngine());
+
+  // Play audio from response
+  const playAudio = useCallback(async (audio: AudioBatch | undefined) => {
+    if (!audio) return;
+
+    try {
+      await audioEngine.current.playBatch(audio);
+    } catch (err) {
+      console.warn('Audio playback failed:', err);
+    }
+  }, []);
 
   // Helper to handle API responses
   const handleResponse = useCallback((response: ActionResponse) => {
@@ -48,7 +61,12 @@ export function useGame(): UseGameReturn {
     if (!response.success && response.message) {
       setError(response.message);
     }
-  }, []);
+
+    // Play audio if present
+    if (response.audio) {
+      playAudio(response.audio);
+    }
+  }, [playAudio]);
 
   // Wrap API calls with loading state
   const withLoading = useCallback(

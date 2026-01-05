@@ -1,0 +1,168 @@
+{
+  "audio_schema": {
+    "version": "1.0",
+    "description": "Audio intent schema for procedural TTS-based sound synthesis"
+  },
+
+  "event_types": [
+    "ambient",
+    "sfx",
+    "music_motif",
+    "ui_feedback",
+    "dialogue",
+    "environmental"
+  ],
+
+  "emotions": [
+    "neutral",
+    "tense",
+    "triumphant",
+    "mysterious",
+    "danger",
+    "peaceful",
+    "comedic",
+    "horror",
+    "epic",
+    "melancholy"
+  ],
+
+  "styles": [
+    "comic_noir",
+    "fantasy_epic",
+    "horror_whisper",
+    "retro_8bit",
+    "ambient_drone",
+    "percussive",
+    "melodic"
+  ],
+
+  "onomatopoeia_library": {
+    "combat": {
+      "sword_hit": ["CLANG", "SHING", "KRRRANG", "SHHHK", "SLASH"],
+      "blunt_hit": ["THWACK", "KRUNCH", "THUD", "WHAM", "BONK"],
+      "magic_cast": ["FWOOSH", "ZZZAP", "CRACKLE", "WHOOOM", "SHIMMER"],
+      "magic_hit": ["KRAKOOM", "ZZRRKT", "BOOM", "SIZZLE", "PZZZOW"],
+      "arrow": ["THWIP", "WHOOSH", "THUNK", "ZING"],
+      "block": ["CLANK", "TING", "KRANG"],
+      "miss": ["SWISH", "WHOOSH", "FWIP"],
+      "critical": ["KA-BOOM", "KRAKATHOOM", "MEGA-KRUNCH"],
+      "death": ["SPLORCH", "THUD", "CRASH", "AAAGH"]
+    },
+    "movement": {
+      "footsteps_stone": ["tap tap tap", "clack clack", "tok tok tok"],
+      "footsteps_water": ["splish splash", "sploosh", "drip drop"],
+      "footsteps_wood": ["creak", "thump thump", "clonk clonk"],
+      "door_open": ["CREEEAK", "KA-CHUNK", "GROOOOAN", "click-CLACK"],
+      "door_close": ["THUD", "SLAM", "click"],
+      "climbing": ["scrrrrape", "grunt... hup", "scramble"],
+      "falling": ["WHOOOOSH", "AAAA", "CRASH"],
+      "swimming": ["splash splash", "glub glub", "swoosh"]
+    },
+    "environment": {
+      "wind": ["whoooooosh", "howwwwl", "shhhhhhh"],
+      "water_drip": ["drip... drip...", "plink... plink...", "plop"],
+      "fire": ["crackle crackle", "FWOOSH", "roooar"],
+      "thunder": ["KRAKA-BOOM", "RUMMMBLE", "CRACK"],
+      "cave_echo": ["...echo... echo...", "drip... drip...", "whooooo"],
+      "forest": ["rustle rustle", "chirp chirp", "creeeak"],
+      "dungeon": ["clank... clank...", "moan...", "drip drip"],
+      "temple": ["hummmmm", "ting... ting...", "whoooosh"]
+    },
+    "items": {
+      "pickup_coin": ["CHING", "clink clink", "ka-ching"],
+      "pickup_item": ["shwoop", "ting!", "swoosh"],
+      "drop_item": ["clatter", "thunk", "plop"],
+      "equip": ["SHING", "click-CLACK", "shwooop"],
+      "potion_drink": ["glug glug glug", "GULP", "ahhhhh"],
+      "scroll_read": ["crinkle crinkle", "fwoooosh", "hmmmm"],
+      "chest_open": ["CREEEAK... ka-chunk", "CLICK... creeeak", "ratttle... THUNK"]
+    },
+    "ui": {
+      "menu_open": ["fwip", "swoosh", "pop"],
+      "menu_close": ["fwup", "click", "snap"],
+      "select": ["tick", "pip", "ting"],
+      "confirm": ["ding!", "ta-da!", "TING"],
+      "cancel": ["bwop", "nope", "tsk"],
+      "error": ["BZZZT", "wonk wonk", "uh-uh"],
+      "level_up": ["TA-DA-DAAAA", "DING DING DING", "WHOOOOSH-TING"]
+    },
+    "music_motifs": {
+      "exploration": ["doo doo doo...", "hmmm hmmm hmm...", "la la laaa..."],
+      "tension": ["dun... dun... DUN...", "tick... tick... tick...", "bum... bum... BUM..."],
+      "combat": ["DUN DUN DUN DUN", "CRASH BANG BOOM", "da-da-DA-DA"],
+      "victory": ["da-da-da-DAAAA!", "TING-a-ling-ling!", "ta-da-da-DAAA!"],
+      "defeat": ["wah wah wahhhhh", "dun dun dunnnnn...", "..."],
+      "mystery": ["ooooooh...", "doo-dee-doo?", "hmmmm..."],
+      "boss": ["DUM DUM DUM DUMMMM", "DOOM DOOM DOOM", "dun-dun-dun-DUN-DUN"]
+    },
+    "npc": {
+      "greeting": ["ahem", "oh!", "hmm?"],
+      "farewell": ["hmph", "bye-bye", "..."],
+      "laugh": ["ha ha ha", "heh heh", "HO HO HO"],
+      "angry": ["GRRR", "HMPH", "tsk tsk"],
+      "surprised": ["GASP", "oh my!", "what?!"],
+      "sad": ["sigh...", "sniff", "oh..."]
+    }
+  },
+
+  "processing_presets": {
+    "cave": {
+      "reverb": 0.8,
+      "delay": 0.4,
+      "lowpass": 2000,
+      "echo_decay": 0.6
+    },
+    "dungeon": {
+      "reverb": 0.5,
+      "delay": 0.2,
+      "lowpass": 3000,
+      "distortion": 0.1
+    },
+    "temple": {
+      "reverb": 0.9,
+      "delay": 0.5,
+      "highpass": 200,
+      "chorus": 0.3
+    },
+    "forest": {
+      "reverb": 0.3,
+      "delay": 0.1,
+      "lowpass": 8000
+    },
+    "combat": {
+      "reverb": 0.2,
+      "compression": 0.8,
+      "distortion": 0.2,
+      "punch": true
+    },
+    "ethereal": {
+      "reverb": 0.95,
+      "delay": 0.6,
+      "pitch_shift": 0.5,
+      "shimmer": true
+    },
+    "retro": {
+      "bitcrush": 8,
+      "lowpass": 4000,
+      "distortion": 0.3
+    }
+  },
+
+  "intensity_mappings": {
+    "pitch": {
+      "0.0": -12,
+      "0.5": 0,
+      "1.0": 12
+    },
+    "speed": {
+      "0.0": 0.5,
+      "0.5": 1.0,
+      "1.0": 2.0
+    },
+    "volume": {
+      "0.0": 0.2,
+      "0.5": 0.6,
+      "1.0": 1.0
+    }
+  }
+}

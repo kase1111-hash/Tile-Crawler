@@ -91,6 +91,27 @@ export interface GameState {
   stats: GameStats;
 }
 
+export interface AudioIntent {
+  event_type: 'sfx' | 'ambient' | 'music_motif' | 'ui_feedback' | 'dialogue' | 'environmental';
+  onomatopoeia: string;
+  emotion: string;
+  intensity: number;
+  pitch_shift: number;
+  speed: number;
+  reverb: number;
+  style: string;
+  spatial?: { pan: number; distance: number };
+  loop: boolean;
+  priority: number;
+}
+
+export interface AudioBatch {
+  primary: AudioIntent;
+  ambient?: AudioIntent;
+  music?: AudioIntent;
+  layers?: AudioIntent[];
+}
+
 export interface ActionResponse {
   success: boolean;
   message: string;
@@ -99,6 +120,7 @@ export interface ActionResponse {
   state?: GameState;
   combat?: CombatState;
   dialogue?: DialogueData;
+  audio?: AudioBatch;
 }
 
 export type Direction = 'north' | 'south' | 'east' | 'west' | 'up' | 'down';
