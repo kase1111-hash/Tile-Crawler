@@ -27,8 +27,18 @@ Technical Features
 Stateful LLM Integration: Context-aware AI that remembers previous rooms, actions, and story beats
 Modular Architecture: Clean separation between world state, narrative memory, and inventory
 RESTful API: FastAPI backend for clean client-server communication
+WebSocket Support: Real-time game updates without polling
+Database Persistence: SQLite/PostgreSQL support with repository pattern
+User Authentication: JWT-based login system with per-user saves
 Real-time Rendering: React-based frontend with Tailwind styling
 Extensible Design: Easy to add new tile types, NPC behaviors, or game mechanics
+
+Advanced Systems
+
+GASR Glyph System: Semantic glyph registry with 80+ tile definitions
+Procedural Glyph Foundry: AI-powered tile generation pipeline
+Multi-Layer Rendering: 6-layer SNES-style compositing system
+Edge Compatibility: Wave Function Collapse-ready tile meshing
 
 🏗️ Architecture
 System Flow
@@ -62,41 +72,103 @@ System Flow
 │  • Shows inventory                                   │
 │  • Provides movement/action controls                 │
 └─────────────────────────────────────────────────────┘
-Tile System
-The game uses simple text characters mapped to visual tiles through a custom font:
+Tile System (GASR)
+The game uses the **Glyph Addressing & Semantic Registry (GASR)** system - a font-driven, tile-based rendering system where every character cell is a graphical tile with semantic meaning.
+
+**Core Concepts:**
+- **Font = Tileset ROM** - Custom fonts contain tile graphics
+- **Text Grid = VRAM** - The map is a text buffer
+- **Glyph = Tile + State + Meaning** - Each glyph has physics, visuals, audio, narrative
+
+**Unicode PUA Codepoint Bands:**
+```
+E000-E0FF: Empty/void spaces
+E100-E1FF: Ground/floors (stone, dirt, grass, wood)
+E200-E2FF: Walls/structures (stone, brick, corners)
+E300-E3FF: Doors/windows (wood, iron, locked, secret)
+E400-E4FF: Fluids (water, lava, acid, blood)
+E500-E5FF: Props/objects (chests, altars, torches)
+E600-E6FF: Items (coins, potions, weapons)
+E700-E7FF: Entities (player, enemies, NPCs)
+E800-E8FF: Effects (fire, poison, traps)
+EA00-EAFF: Overlays (lighting, damage, highlights)
+```
+
+**Legacy Character Mapping:**
+```
 Character → Visual Tile
 ─────────────────────
-  ▓      →   Wall
-  ░      →   Floor
+  #      →   Wall
+  .      →   Floor
   @      →   Player
-  $      →   Item
+  !      →   Item
   ☺      →   NPC
   ≈      →   Water
-  ▲      →   Mountain
-  ♣      →   Tree
+  ^      →   Trap
+  +      →   Door
+```
+
+**6-Layer Rendering (SNES-style):**
+```
+Layer 0: Background terrain
+Layer 1: Structures (walls, doors)
+Layer 2: Entities (player, enemies)
+Layer 3: Effects/particles
+Layer 4: Lighting overlays
+Layer 5: UI elements
+```
 📁 Project Structure
 tile-crawler/
 ├── backend/
 │   ├── main.py                  # FastAPI application entry point
 │   ├── llm_engine.py           # OpenAI integration & prompt management
+│   ├── game_engine.py          # Core game logic and state management
 │   ├── world_state.py          # Persistent world/room storage
 │   ├── narrative_memory.py     # Story continuity system
 │   ├── inventory_state.py      # Player inventory management
-│   ├── requirements.txt        # Python dependencies
-│   ├── .env                    # API keys (not committed)
-│   ├── world_state.json        # Generated world data
-│   ├── narrative_memory.json   # Story log
-│   └── inventory_state.json    # Current inventory
+│   ├── player_state.py         # Player stats and progression
+│   ├── websocket_manager.py    # Real-time WebSocket connections
+│   ├── auth/                   # User authentication system
+│   │   ├── models.py          # User, Token models
+│   │   ├── service.py         # JWT & password handling
+│   │   └── dependencies.py    # FastAPI auth dependencies
+│   ├── database/               # Database persistence layer
+│   │   ├── models.py          # Pydantic DB models
+│   │   ├── repository.py      # SQLite/PostgreSQL repository
+│   │   └── converter.py       # State conversion utilities
+│   ├── glyphs/                 # GASR Glyph System
+│   │   ├── models.py          # Glyph, Animation models
+│   │   ├── registry.py        # Glyph registry singleton
+│   │   ├── layers.py          # Multi-layer rendering
+│   │   ├── legends.py         # LLM context compression
+│   │   └── engine.py          # Glyph rendering engine
+│   ├── foundry/                # Procedural Glyph Foundry
+│   │   ├── grammar.py         # Tile grammar & edge codes
+│   │   ├── palettes.py        # Color palette system
+│   │   ├── edges.py           # WFC edge compatibility
+│   │   ├── generator.py       # AI tile generation
+│   │   ├── validator.py       # Tile validation
+│   │   └── compiler.py        # Glyph auto-generation
+│   ├── tests/                  # Test suite (260+ tests)
+│   └── requirements.txt        # Python dependencies
+├── data/
+│   ├── glyphs.json            # 80+ glyph definitions
+│   ├── animations.json        # Animation sequences
+│   ├── tiles.json             # Legacy tile definitions
+│   ├── biomes.json            # 8 biome configurations
+│   ├── enemies.json           # Enemy definitions
+│   ├── items.json             # Item definitions
+│   └── palettes.json          # Color palettes
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx            # Main React component
-│   │   ├── index.css          # Tailwind & custom font styles
+│   │   ├── components/        # UI components
+│   │   ├── services/          # API & WebSocket services
+│   │   ├── hooks/             # React hooks
 │   │   └── fonts/
 │   │       └── DungeonTiles.ttf  # Custom tileset font
-│   ├── tailwind.config.js     # Tailwind configuration
 │   ├── package.json           # Node dependencies
-│   ├── vite.config.ts         # Vite build configuration
-│   └── index.html             # Entry HTML
+│   └── vite.config.ts         # Vite build configuration
 └── README.md                   # This file
 🚀 Installation
 Prerequisites
@@ -269,6 +341,77 @@ Basic Tiles:
 
 Extended Set:
 ╔ ═ ╗ ║ ╚ ╝ ╠ ╣ ╬ ┌ ─ ┐ │ └ ┘ ├ ┤ ┼
+🏭 Procedural Glyph Foundry
+
+The Foundry is an AI-powered tile generation pipeline that creates parametrically constrained micro-tiles. AI doesn't create "art" - it creates tiles that obey rules.
+
+### Tile Grammar
+
+Each tile is defined by a structured grammar, not prose:
+
+```python
+TileGrammar(
+    category="wall",
+    subcategory="corner",
+    palette="stone_gray",
+    edges=EdgeSignature(N=SOLID, E=SOLID, S=EMPTY, W=EMPTY),
+    center="stone",
+    styles=[TileStyle.PIXEL, TileStyle.HIGH_CONTRAST],
+    damage_state=0,    # 0-3: pristine to broken
+    lighting_state=1,  # 0-2: dark to bright
+    moisture_state=0,  # 0-1: dry to wet
+)
+```
+
+### Edge Compatibility (WFC-Ready)
+
+Every tile declares edge signatures for perfect meshing:
+
+| Edge Code | Meaning       |
+|-----------|---------------|
+| 0         | Empty/open    |
+| 1         | Solid wall    |
+| 2         | Floor level   |
+| 3         | Water edge    |
+| 5         | Door frame    |
+
+A corner wall: `edges: {N: 1, E: 1, S: 0, W: 0}`
+
+### Combinatorial Generation
+
+Batch generation via parameter combinations:
+
+```
+20 terrain bases
+× 8 edge variants
+× 4 damage states
+× 3 lighting states
+× 2 moisture states
+─────────────────
+= 3,840 tiles
+```
+
+### Palettes
+
+12 built-in palettes with 4-color constraints:
+- `stone_gray` - Dungeon/cave walls
+- `wood_brown` - Doors, furniture
+- `nature_green` - Forest biome
+- `water_blue` - Rivers, lakes
+- `lava_orange` - Volcano hazards
+- `void_purple` - Magical effects
+
+### Validation Pipeline
+
+Each generated tile is validated for:
+- ✓ Correct pixel dimensions
+- ✓ Only allowed palette colors
+- ✓ Edge pixels match declared codes
+- ✓ No anti-aliasing artifacts
+- ✓ Consistent center texture
+
+Failures are automatically regenerated.
+
 🔧 Configuration
 LLM Settings
 Edit backend/llm_engine.py:
@@ -291,29 +434,42 @@ Tile Appearance
 Modify frontend styling in App.tsx:
 tsx<pre className="text-4xl">  {/* Change size */}
 🛣️ Roadmap
-Planned Features
 
- Combat System: Turn-based battles with LLM-narrated encounters
- Quest System: Dynamic objectives generated by AI
- Multiple Biomes: Dungeons, forests, cities, ruins
- Save/Load: Persistent game sessions
- Multiplayer: Shared world exploration
- Color Tilesets: COLR/CPAL font support for rich graphics
- Sound Effects: Audio feedback for actions
- Mobile Controls: Touch-friendly interface
- Fog of War: Hide unexplored areas
- Character Classes: Different starting abilities
- Magic System: Spells with visual effects
- Crafting: Combine items for new tools
- Achievement System: Track player milestones
+### Completed Features ✅
 
-Experimental Ideas
+- [x] **Combat System**: Turn-based battles with LLM-narrated encounters
+- [x] **Multiple Biomes**: 8 biomes (Dungeon, Cave, Crypt, Ruins, Temple, Forest, Volcano, Void)
+- [x] **Save/Load**: Database persistence with SQLite/PostgreSQL
+- [x] **User Authentication**: JWT-based login with per-user saves
+- [x] **WebSocket Support**: Real-time game updates
+- [x] **Sound Effects**: TTS-based procedural audio synthesis
+- [x] **GASR Glyph System**: 80+ semantic glyph definitions
+- [x] **Procedural Glyph Foundry**: AI tile generation pipeline
+- [x] **Multi-Layer Rendering**: 6-layer SNES-style compositing
+- [x] **API Documentation**: OpenAPI/Swagger docs
+- [x] **E2E Testing**: Playwright test suite
+- [x] **CI/CD Pipeline**: Automated testing and deployment
 
-Multi-Agent NPCs: Different AI personalities for different characters
-Procedural Quests: LLM-generated mission chains
-Dynamic Difficulty: AI adjusts challenge based on player skill
-Voice Narration: Text-to-speech for descriptions
-AR/VR Mode: Immersive tile-world exploration
+### Planned Features
+
+- [ ] Quest System: Dynamic objectives generated by AI
+- [ ] Multiplayer: Shared world exploration
+- [ ] Color Tilesets: COLR/CPAL font support for rich graphics
+- [ ] Mobile Controls: Touch-friendly interface
+- [ ] Fog of War: Hide unexplored areas
+- [ ] Character Classes: Different starting abilities
+- [ ] Magic System: Spells with visual effects
+- [ ] Crafting: Combine items for new tools
+- [ ] Achievement System: Track player milestones
+
+### Experimental Ideas
+
+- Multi-Agent NPCs: Different AI personalities for different characters
+- Procedural Quests: LLM-generated mission chains
+- Dynamic Difficulty: AI adjusts challenge based on player skill
+- Voice Narration: Text-to-speech for descriptions
+- AR/VR Mode: Immersive tile-world exploration
+- Modder Tile Generation: Custom tilesets via AI prompts
 
 🤝 Contributing
 Contributions are welcome! This project is particularly suited for:
