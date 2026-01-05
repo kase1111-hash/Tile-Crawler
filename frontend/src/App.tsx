@@ -1,8 +1,12 @@
-// Main App Component for Tile-Crawler - TUI Style
+// Main App Component for Tile-Crawler - Fullscreen ASCII Map
 
 import { useCallback, useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { GameMenu } from './components';
+
+// Map dimensions for fullscreen rendering
+const MAP_WIDTH = 80;
+const MAP_HEIGHT = 24;
 
 function App() {
   const {
@@ -25,6 +29,7 @@ function App() {
   } = useGame();
 
   const [selectedItem, setSelectedItem] = useState<number>(0);
+  const [showInventory, setShowInventory] = useState(false);
 
   // Keyboard controls
   const handleKeyDown = useCallback(
@@ -35,10 +40,51 @@ function App() {
       const inCombat = gameState.combat?.in_combat;
       const items = gameState.inventory;
 
+      // Toggle inventory with 'i'
+      if (e.key.toLowerCase() === 'i' && !inCombat && !dialogueData) {
+        setShowInventory(prev => !prev);
+        return;
+      }
+
+      // Escape closes overlays
+      if (e.key === 'Escape') {
+        if (showInventory) {
+          setShowInventory(false);
+          return;
+        }
+        if (dialogueData) {
+          clearDialogue();
+          return;
+        }
+      }
+
       // Dialogue controls
       if (dialogueData) {
-        if (e.key === 'Escape' || e.key.toLowerCase() === 'q') {
+        if (e.key.toLowerCase() === 'q') {
           clearDialogue();
+        }
+        return;
+      }
+
+      // Inventory navigation when open
+      if (showInventory) {
+        if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'k') {
+          setSelectedItem(i => Math.max(0, i - 1));
+          return;
+        }
+        if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'j') {
+          setSelectedItem(i => Math.min(items.length - 1, i + 1));
+          return;
+        }
+        if (e.key === 'Enter' || e.key.toLowerCase() === 'u') {
+          if (items[selectedItem]) {
+            useItem(items[selectedItem].id);
+          }
+          return;
+        }
+        if (e.key.toLowerCase() === 'q') {
+          setShowInventory(false);
+          return;
         }
         return;
       }
@@ -54,22 +100,6 @@ function App() {
           case '2':
             flee();
             break;
-        }
-        return;
-      }
-
-      // Inventory navigation
-      if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'k') {
-        setSelectedItem(i => Math.max(0, i - 1));
-        return;
-      }
-      if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'j') {
-        setSelectedItem(i => Math.min(items.length - 1, i + 1));
-        return;
-      }
-      if (e.key === 'Enter' || e.key.toLowerCase() === 'u') {
-        if (items[selectedItem]) {
-          useItem(items[selectedItem].id);
         }
         return;
       }
@@ -121,7 +151,7 @@ function App() {
         }
       }
     },
-    [gameState, isLoading, dialogueData, selectedItem, move, attack, flee, rest, talk, takeItem, useItem, clearDialogue, saveGame]
+    [gameState, isLoading, dialogueData, selectedItem, showInventory, move, attack, flee, rest, talk, takeItem, useItem, clearDialogue, saveGame]
   );
 
   useEffect(() => {
@@ -151,14 +181,6 @@ function App() {
 
   const inCombat = gameState.combat?.in_combat ?? false;
   const exits = gameState.room.exits;
-  const exitStr = [
-    exits.north && 'N',
-    exits.south && 'S',
-    exits.east && 'E',
-    exits.west && 'W',
-    exits.up && '↑',
-    exits.down && '↓'
-  ].filter(Boolean).join(' ');
 
   // Parse stat strings like "100/100" into [current, max]
   const parseStat = (stat: string): [number, number] => {
@@ -170,153 +192,166 @@ function App() {
 
   const [hp, maxHp] = parseStat(gameState.player.hp);
   const [mana, maxMana] = parseStat(gameState.player.mana);
-  const [xp, xpToLevel] = parseStat(gameState.player.xp);
 
-  // Format HP/MP bars
+  // Create fullscreen map with room centered
+  const renderFullscreenMap = () => {
+    const roomMap = gameState.room.map;
+    const roomHeight = roomMap.length;
+    const roomWidth = roomMap[0]?.length || 0;
+
+    // Calculate padding to center the room
+    const padTop = Math.floor((MAP_HEIGHT - roomHeight) / 2);
+    const padLeft = Math.floor((MAP_WIDTH - roomWidth) / 2);
+
+    const lines: string[] = [];
+
+    for (let y = 0; y < MAP_HEIGHT; y++) {
+      let line = '';
+      for (let x = 0; x < MAP_WIDTH; x++) {
+        const roomY = y - padTop;
+        const roomX = x - padLeft;
+
+        if (roomY >= 0 && roomY < roomHeight && roomX >= 0 && roomX < roomWidth) {
+          line += roomMap[roomY][roomX];
+        } else {
+          // Fill with darkness/void outside room
+          line += ' ';
+        }
+      }
+      lines.push(line);
+    }
+
+    return lines;
+  };
+
+  const fullMap = renderFullscreenMap();
+
+  // Build HP/MP bars for status line
   const hpPct = Math.round((hp / maxHp) * 100);
   const mpPct = Math.round((mana / maxMana) * 100);
-  const xpPct = Math.round((xp / xpToLevel) * 100);
+  const hpBar = '█'.repeat(Math.floor(hpPct / 10)) + '░'.repeat(10 - Math.floor(hpPct / 10));
+  const mpBar = '█'.repeat(Math.floor(mpPct / 10)) + '░'.repeat(10 - Math.floor(mpPct / 10));
 
-  const hpBar = '█'.repeat(Math.floor(hpPct / 5)) + '░'.repeat(20 - Math.floor(hpPct / 5));
-  const mpBar = '█'.repeat(Math.floor(mpPct / 5)) + '░'.repeat(20 - Math.floor(mpPct / 5));
-  const xpBar = '█'.repeat(Math.floor(xpPct / 5)) + '░'.repeat(20 - Math.floor(xpPct / 5));
+  // Build exit string
+  const exitChars = [
+    exits.north && 'N',
+    exits.south && 'S',
+    exits.east && 'E',
+    exits.west && 'W',
+    exits.up && '↑',
+    exits.down && '↓'
+  ].filter(Boolean).join('');
 
   return (
-    <div className="tui-container">
-      {/* Top status bar */}
-      <div className="tui-status">
-        <span className="text-green-400">{gameState.player.name}</span>
-        <span className="text-dungeon-muted"> │ </span>
-        <span>Lv.{gameState.player.level}</span>
-        <span className="text-dungeon-muted"> │ </span>
-        <span className="text-red-400">HP:{hp}/{maxHp}</span>
-        <span className="text-dungeon-muted"> │ </span>
-        <span className="text-blue-400">MP:{mana}/{maxMana}</span>
-        <span className="text-dungeon-muted"> │ </span>
-        <span className="text-yellow-400">Gold:{gameState.gold}</span>
-        <span className="text-dungeon-muted"> │ </span>
-        <span className="text-dungeon-muted">({gameState.position[0]},{gameState.position[1]}) F{gameState.position[2]+1}</span>
-        <span className="text-dungeon-muted"> │ </span>
-        <span className="capitalize">{gameState.room.biome}</span>
-        {isLoading && <span className="text-yellow-400 ml-4">◌ Loading...</span>}
+    <div className="fullscreen-container">
+      {/* Fullscreen ASCII Map */}
+      <div className="ascii-map">
+        {fullMap.map((row, i) => (
+          <div key={i} className="map-row">
+            {row.split('').map((char, j) => (
+              <span key={j} className={getTileClass(char)}>{char}</span>
+            ))}
+          </div>
+        ))}
       </div>
 
-      {/* Main content area */}
-      <div className="tui-main">
-        {/* Left panel - Stats & Inventory */}
-        <div className="tui-panel tui-left">
-          <div className="tui-section">
-            <div className="tui-header">═══ STATS ═══</div>
-            <div><span className="text-red-400">HP </span><span className="text-red-500">[{hpBar}]</span> {hpPct}%</div>
-            <div><span className="text-blue-400">MP </span><span className="text-blue-500">[{mpBar}]</span> {mpPct}%</div>
-            <div><span className="text-purple-400">XP </span><span className="text-purple-500">[{xpBar}]</span> {xpPct}%</div>
-            <div className="text-dungeon-muted mt-1">ATK:{gameState.player.attack} DEF:{gameState.player.defense}</div>
-          </div>
+      {/* Top HUD - Status Bar */}
+      <div className="hud-top">
+        <span className="text-green-400">{gameState.player.name}</span>
+        <span className="text-dim"> Lv{gameState.player.level} </span>
+        <span className="text-red-400">HP[{hpBar}]</span>
+        <span className="text-blue-400"> MP[{mpBar}]</span>
+        <span className="text-yellow-400"> ${gameState.gold}</span>
+        <span className="text-dim"> ({gameState.position[0]},{gameState.position[1]})F{gameState.position[2]+1}</span>
+        <span className="text-dim"> [{exitChars || '-'}]</span>
+        {isLoading && <span className="text-yellow-400"> ◌</span>}
+      </div>
 
-          <div className="tui-section">
-            <div className="tui-header">═══ INVENTORY ═══</div>
+      {/* Bottom HUD - Messages/Narrative */}
+      <div className="hud-bottom">
+        {error && <div className="text-red-400">&gt; {error}</div>}
+        {narrative && <div className="text-dim">&gt; {narrative}</div>}
+        {gameState.room.description && (
+          <div className="text-dim">{gameState.room.description}</div>
+        )}
+        <div className="hud-controls">
+          <span className="text-dim">[WASD]Move [I]Inventory [G]Get [T]Talk [R]Rest [Q]Save</span>
+        </div>
+      </div>
+
+      {/* Combat Overlay */}
+      {inCombat && gameState.combat && (
+        <div className="overlay-panel combat-panel">
+          <div className="panel-border">
+            ╔══════════ COMBAT ══════════╗
+          </div>
+          <div className="panel-content">
+            <div className="text-red-400">  {gameState.combat.enemy_name}</div>
+            <div>  HP: {gameState.combat.enemy_hp}/{gameState.combat.enemy_max_hp}</div>
+            <div className="mt-2">
+              <div className="text-green-400">  [A] Attack</div>
+              <div className="text-yellow-400">  [F] Flee</div>
+            </div>
+          </div>
+          <div className="panel-border">
+            ╚════════════════════════════╝
+          </div>
+        </div>
+      )}
+
+      {/* Dialogue Overlay */}
+      {dialogueData && (
+        <div className="overlay-panel dialogue-panel">
+          <div className="panel-border">
+            ╔══════════ {dialogueData.npc_name.toUpperCase()} ══════════╗
+          </div>
+          <div className="panel-content">
+            <div className="text-dim">"{dialogueData.speech}"</div>
+          </div>
+          <div className="panel-border">
+            ╚═══════════ [Q] Close ═══════════╝
+          </div>
+        </div>
+      )}
+
+      {/* Inventory Overlay */}
+      {showInventory && (
+        <div className="overlay-panel inventory-panel">
+          <div className="panel-border">
+            ╔═══════════ INVENTORY ═══════════╗
+          </div>
+          <div className="panel-content">
             {gameState.inventory.length === 0 ? (
-              <div className="text-dungeon-muted">  (empty)</div>
+              <div className="text-dim">  (empty)</div>
             ) : (
               gameState.inventory.map((item, i) => (
-                <div
-                  key={item.id}
-                  className={i === selectedItem ? 'tui-selected' : ''}
-                >
-                  {i === selectedItem ? '► ' : '  '}
+                <div key={item.id} className={i === selectedItem ? 'selected-item' : ''}>
+                  {i === selectedItem ? ' ► ' : '   '}
                   <span className="text-cyan-400">{item.name}</span>
-                  {item.quantity > 1 && <span className="text-dungeon-muted"> x{item.quantity}</span>}
+                  {item.quantity > 1 && <span className="text-dim"> x{item.quantity}</span>}
                 </div>
               ))
             )}
-            <div className="text-dungeon-muted mt-1 text-xs">↑↓:select  u:use</div>
+            <div className="text-dim mt-2">  ↑↓:Select  U:Use  Q:Close</div>
           </div>
-
-          <div className="tui-section">
-            <div className="tui-header">═══ ROOM ═══</div>
-            <div>Exits: <span className="text-green-400">{exitStr || 'none'}</span></div>
-            {gameState.room.npcs.length > 0 && (
-              <div>NPCs: <span className="text-yellow-400">{gameState.room.npcs.join(', ')}</span></div>
-            )}
-            {gameState.room.features.length > 0 && (
-              <div className="text-dungeon-muted">{gameState.room.features.map(f => f.replace('_', ' ')).join(', ')}</div>
-            )}
+          <div className="panel-border">
+            ╚════════════════════════════════╝
           </div>
         </div>
+      )}
 
-        {/* Center - Map */}
-        <div className="tui-panel tui-center">
-          <div className="tui-map">
-            {gameState.room.map.map((row, i) => (
-              <div key={i} className="tui-map-row">
-                {row.split('').map((char, j) => (
-                  <span key={j} className={getTileClass(char)}>{char}</span>
-                ))}
-              </div>
-            ))}
-          </div>
+      {/* Room Items Indicator */}
+      {!inCombat && !showInventory && gameState.room.items.length > 0 && (
+        <div className="hud-items">
+          <span className="text-cyan-400">Items here: </span>
+          {gameState.room.items.map((item, i) => (
+            <span key={item.id}>
+              <span className="text-dim">[{i+1}]</span>
+              <span className="text-cyan-400">{item.name} </span>
+            </span>
+          ))}
         </div>
-
-        {/* Right panel - Combat/Items/Dialogue */}
-        <div className="tui-panel tui-right">
-          {/* Combat */}
-          {inCombat && gameState.combat && (
-            <div className="tui-section">
-              <div className="tui-header text-red-400">══ COMBAT ══</div>
-              <div className="text-red-400">{gameState.combat.enemy_name}</div>
-              <div>HP: {gameState.combat.enemy_hp}/{gameState.combat.enemy_max_hp}</div>
-              <div className="mt-2">
-                <div>[A] Attack</div>
-                <div>[F] Flee</div>
-              </div>
-            </div>
-          )}
-
-          {/* Dialogue */}
-          {dialogueData && (
-            <div className="tui-section">
-              <div className="tui-header text-yellow-400">══ DIALOGUE ══</div>
-              <div className="text-yellow-400">{dialogueData.npc_name}:</div>
-              <div className="text-dungeon-text mt-1">"{dialogueData.speech}"</div>
-              <div className="text-dungeon-muted mt-2">[Q] Close</div>
-            </div>
-          )}
-
-          {/* Room Items */}
-          {!inCombat && gameState.room.items.length > 0 && (
-            <div className="tui-section">
-              <div className="tui-header">═══ ITEMS ═══</div>
-              {gameState.room.items.map((item, i) => (
-                <div key={item.id}>
-                  <span className="text-dungeon-muted">[{i+1}]</span>
-                  <span className="text-cyan-400"> {item.name}</span>
-                </div>
-              ))}
-              <div className="text-dungeon-muted mt-1 text-xs">g:take  1-9:take #</div>
-            </div>
-          )}
-
-          {/* Controls Help */}
-          <div className="tui-section mt-auto">
-            <div className="tui-header">═══ KEYS ═══</div>
-            <div className="text-xs">
-              <div>WASD: Move</div>
-              <div>&lt;&gt;: Up/Down</div>
-              <div>T: Talk  R: Rest</div>
-              <div>G: Take  Q: Save</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom narrative */}
-      <div className="tui-narrative">
-        {error && <div className="text-red-400">! {error}</div>}
-        <div>{narrative}</div>
-        {gameState.narrative.recent_events && (
-          <div className="text-dungeon-muted">{gameState.narrative.recent_events}</div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -328,7 +363,7 @@ function getTileClass(char: string): string {
     case '&': case 'Ω': return 'tile-enemy';
     case '☺': return 'tile-npc';
     case '$': case '■': case '□': return 'tile-item';
-    case '▓': case '╔': case '═': case '╗': case '║': case '╚': case '╝': case '╠': case '╣': case '╬': return 'tile-wall';
+    case '▓': case '╔': case '═': case '╗': case '║': case '╚': case '╝': case '╠': case '╣': case '╬': case '#': return 'tile-wall';
     case '░': case '.': return 'tile-floor';
     case '≈': return 'tile-water';
     case '~': return 'tile-lava';
@@ -336,6 +371,7 @@ function getTileClass(char: string): string {
     case '>': case '<': return 'tile-stairs';
     case '^': return 'tile-trap';
     case '◊': case '♨': return 'tile-chest';
+    case ' ': return 'tile-void';
     default: return 'tile-floor';
   }
 }

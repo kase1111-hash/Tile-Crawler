@@ -913,6 +913,20 @@ async def use_item(request: UseItemRequest):
             elif "scroll" in item_id:
                 audio_batch = audio_engine.generate_discovery_audio("scroll")
                 audio_data = audio_batch.model_dump()
+            elif "torch" in item_id or "lantern" in item_id:
+                # Fire/light sound for torches
+                audio_data = {"primary": {
+                    "event_type": "sfx",
+                    "onomatopoeia": "FWOOSH... crackle crackle",
+                    "emotion": "neutral",
+                    "intensity": 0.6,
+                    "pitch_shift": 0,
+                    "speed": 1.0,
+                    "reverb": 0.3,
+                    "style": "comic_noir",
+                    "loop": False,
+                    "priority": 5
+                }}
             else:
                 audio_intent = audio_engine.generate_equip_audio()
                 audio_data = {"primary": audio_intent.model_dump()}

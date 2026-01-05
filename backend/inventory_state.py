@@ -188,7 +188,9 @@ class InventoryState:
 
         item = self.items[item_id]
 
-        if item.category != "consumable" and item.category != "scroll":
+        # Allow consumables, scrolls, and usable tools (like torches)
+        usable_categories = {"consumable", "scroll", "tool"}
+        if item.category not in usable_categories:
             return False, f"Cannot use {item.name}", None
 
         # Remove one from stack

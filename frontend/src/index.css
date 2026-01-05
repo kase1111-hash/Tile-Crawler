@@ -14,10 +14,10 @@
 /* Base styles */
 :root {
   --color-bg: #0a0a0f;
-  --color-panel: #0d0d14;
+  --color-panel: rgba(10, 10, 15, 0.9);
   --color-border: #2a2a3a;
   --color-text: #c0c0c0;
-  --color-muted: #606080;
+  --color-dim: #606080;
   --color-accent: #7b68ee;
 }
 
@@ -39,139 +39,136 @@ body {
   color: var(--color-text);
 }
 
-/* TUI Container - fills entire screen */
-.tui-container {
+/* Fullscreen container */
+.fullscreen-container {
+  width: 100vw;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 4px;
-  gap: 4px;
-}
-
-/* Top status bar */
-.tui-status {
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  padding: 4px 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-/* Main content area */
-.tui-main {
-  flex: 1;
-  display: flex;
-  gap: 4px;
-  min-height: 0;
-}
-
-/* Panels */
-.tui-panel {
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  padding: 8px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.tui-left {
-  width: 220px;
-  flex-shrink: 0;
-}
-
-.tui-center {
-  flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
+  background: var(--color-bg);
+  overflow: hidden;
 }
 
-.tui-right {
-  width: 180px;
-  flex-shrink: 0;
-}
-
-/* Sections within panels */
-.tui-section {
-  margin-bottom: 12px;
-}
-
-.tui-section:last-child {
-  margin-bottom: 0;
-}
-
-.tui-header {
-  color: var(--color-accent);
-  margin-bottom: 4px;
-  font-weight: bold;
-}
-
-/* Selected item highlight */
-.tui-selected {
-  background: rgba(123, 104, 238, 0.2);
-}
-
-/* Map display */
-.tui-map {
-  font-family: 'DungeonTiles', 'Consolas', monospace;
-  font-size: 28px;
+/* ASCII Map - fills the screen */
+.ascii-map {
+  font-family: 'DungeonTiles', 'Consolas', 'Monaco', monospace;
+  font-size: clamp(14px, 2.5vmin, 28px);
   line-height: 1;
   letter-spacing: 0;
   white-space: pre;
   user-select: none;
-}
-
-.tui-map-row {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
 }
 
+.map-row {
+  display: flex;
+  height: 1em;
+}
+
+.map-row span {
+  width: 1ch;
+  text-align: center;
+}
+
 /* Tile colors */
-.tile-player { color: #00ff00; text-shadow: 0 0 8px #00ff00; }
-.tile-enemy { color: #ff4444; text-shadow: 0 0 6px #ff4444; }
-.tile-npc { color: #ffff00; text-shadow: 0 0 6px #ffff00; }
-.tile-item { color: #00ffff; text-shadow: 0 0 4px #00ffff; }
+.tile-player { color: #00ff00; text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00; }
+.tile-enemy { color: #ff4444; text-shadow: 0 0 8px #ff4444; }
+.tile-npc { color: #ffff00; text-shadow: 0 0 8px #ffff00; }
+.tile-item { color: #00ffff; text-shadow: 0 0 6px #00ffff; }
 .tile-wall { color: #5a5a7a; }
-.tile-floor { color: #3a3a5a; }
+.tile-floor { color: #3a3a4a; }
 .tile-water { color: #0088ff; text-shadow: 0 0 4px #0088ff; }
-.tile-lava { color: #ff6600; text-shadow: 0 0 6px #ff6600; }
-.tile-door { color: #8b5a2b; }
-.tile-stairs { color: #ffffff; text-shadow: 0 0 4px #ffffff; }
-.tile-trap { color: #ff00ff; }
-.tile-chest { color: #ffd700; text-shadow: 0 0 4px #ffd700; }
+.tile-lava { color: #ff6600; text-shadow: 0 0 8px #ff6600; }
+.tile-door { color: #8b5a2b; text-shadow: 0 0 2px #8b5a2b; }
+.tile-stairs { color: #ffffff; text-shadow: 0 0 6px #ffffff; }
+.tile-trap { color: #ff00ff; text-shadow: 0 0 4px #ff00ff; }
+.tile-chest { color: #ffd700; text-shadow: 0 0 6px #ffd700; }
+.tile-void { color: transparent; }
 
-/* Bottom narrative area */
-.tui-narrative {
-  background: var(--color-panel);
+/* HUD elements - overlay on top of map */
+.hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+  padding: 8px 16px;
+  font-size: 14px;
+  z-index: 10;
+}
+
+.hud-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+  padding: 16px;
+  font-size: 13px;
+  z-index: 10;
+}
+
+.hud-controls {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(100, 100, 120, 0.3);
+}
+
+.hud-items {
+  position: absolute;
+  bottom: 100px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 12px;
   border: 1px solid var(--color-border);
-  padding: 8px;
-  min-height: 80px;
-  max-height: 120px;
-  overflow-y: auto;
-  flex-shrink: 0;
+  font-size: 13px;
+  z-index: 10;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Overlay panels for inventory, combat, dialogue */
+.overlay-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(10, 10, 20, 0.95);
+  border: 1px solid var(--color-border);
+  padding: 0;
+  min-width: 300px;
+  max-width: 80vw;
+  z-index: 100;
+  font-size: 14px;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--color-bg);
+.panel-border {
+  color: var(--color-accent);
+  white-space: pre;
+  padding: 0 8px;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
+.panel-content {
+  padding: 8px 16px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted);
+.selected-item {
+  background: rgba(123, 104, 238, 0.3);
 }
+
+/* Text color utilities */
+.text-dim { color: var(--color-dim); }
+.text-green-400 { color: #4ade80; }
+.text-red-400 { color: #f87171; }
+.text-blue-400 { color: #60a5fa; }
+.text-yellow-400 { color: #facc15; }
+.text-cyan-400 { color: #22d3ee; }
+.text-purple-400 { color: #c084fc; }
+
+.mt-2 { margin-top: 0.5rem; }
 
 /* Game menu styling */
 .game-panel {
@@ -201,28 +198,67 @@ body {
   cursor: not-allowed;
 }
 
-/* Responsive adjustments */
-@media (max-width: 900px) {
-  .tui-map {
-    font-size: 20px;
-  }
-  .tui-left {
-    width: 180px;
-  }
-  .tui-right {
-    width: 140px;
-  }
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-@media (max-width: 700px) {
-  .tui-main {
-    flex-direction: column;
-  }
-  .tui-left, .tui-right {
-    width: 100%;
-    max-height: 150px;
-  }
-  .tui-map {
-    font-size: 16px;
-  }
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
 }
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-dim);
+}
+
+/* Legacy TUI styles (for menu compatibility) */
+.tui-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 4px;
+}
+
+.tui-status {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tui-main {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  min-height: 0;
+}
+
+.tui-panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tui-narrative {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  min-height: 80px;
+  max-height: 120px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.text-dungeon-muted { color: var(--color-dim); }

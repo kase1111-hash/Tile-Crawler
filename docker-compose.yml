@@ -9,8 +9,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-ollama}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-http://host.docker.internal:11434/v1}
+      - LLM_MODEL=${LLM_MODEL:-llama3.2}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./data:/app/data:ro

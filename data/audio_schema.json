@@ -83,7 +83,7 @@
       "select": ["tick", "pip", "ting"],
       "confirm": ["ding!", "ta-da!", "TING"],
       "cancel": ["bwop", "nope", "tsk"],
-      "error": ["BZZZT", "wonk wonk", "uh-uh"],
+      "error": ["BZZZT", "boop boop", "nuh-uh"],
       "level_up": ["TA-DA-DAAAA", "DING DING DING", "WHOOOOSH-TING"]
     },
     "music_motifs": {
