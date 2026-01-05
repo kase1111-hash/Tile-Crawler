@@ -454,14 +454,23 @@ async def get_game_state():
     response_model=SaveLoadResponse,
     tags=["Game Management"],
     summary="Save game",
-    description="Save the current game state to persistent storage."
+    description="""Save the current game state to database.
+
+Optionally specify a player_id and save_name for organization.
+Multiple saves per player are supported."""
 )
-async def save_game():
-    """Save the current game state."""
+async def save_game(
+    player_id: str = Query(default="default", description="Player identifier"),
+    save_name: str = Query(default="quicksave", description="Name for the save slot")
+):
+    """Save the current game state to database."""
     try:
         engine = get_game_engine()
-        engine._save_all()
-        return SaveLoadResponse(success=True, message="Game saved successfully")
+        save_id = engine.save_to_database(player_id, save_name)
+        return SaveLoadResponse(
+            success=True,
+            message=f"Game saved successfully (ID: {save_id})"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -471,18 +480,72 @@ async def save_game():
     response_model=SaveLoadResponse,
     tags=["Game Management"],
     summary="Load game",
-    description="Load a previously saved game state from storage."
+    description="""Load a previously saved game state from database.
+
+If save_id is not specified, loads the most recent save for the player."""
 )
-async def load_game():
-    """Load saved game state."""
+async def load_game(
+    save_id: Optional[int] = Query(default=None, description="Specific save ID to load"),
+    player_id: str = Query(default="default", description="Player identifier")
+):
+    """Load saved game state from database."""
     try:
-        engine = reset_game_engine()
+        engine = get_game_engine()
+        success = engine.load_from_database(save_id, player_id)
+
+        if not success:
+            return SaveLoadResponse(
+                success=False,
+                message="No saved game found"
+            )
+
         state = engine.get_game_state()
         return SaveLoadResponse(
             success=True,
             message="Game loaded successfully",
             state=state
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/api/game/saves",
+    tags=["Game Management"],
+    summary="List saves",
+    description="List all saved games for a player."
+)
+async def list_saves(
+    player_id: str = Query(default="default", description="Player identifier")
+):
+    """List all saves for a player."""
+    try:
+        engine = get_game_engine()
+        saves = engine.list_saves(player_id)
+        return {
+            "success": True,
+            "saves": saves,
+            "count": len(saves)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete(
+    "/api/game/saves/{save_id}",
+    tags=["Game Management"],
+    summary="Delete save",
+    description="Delete a specific saved game by ID."
+)
+async def delete_save(save_id: int):
+    """Delete a saved game."""
+    try:
+        engine = get_game_engine()
+        success = engine.delete_save(save_id)
+        return {
+            "success": success,
+            "message": "Save deleted" if success else "Save not found"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

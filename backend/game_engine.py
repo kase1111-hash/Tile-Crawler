@@ -15,6 +15,8 @@ from narrative_memory import get_narrative_memory, reset_narrative_memory
 from inventory_state import get_inventory_state, reset_inventory_state
 from player_state import get_player_state, reset_player_state, StatusEffect
 from llm_engine import get_llm_engine
+from database import get_repository, GameSave
+from database.converter import StateConverter
 
 
 class ActionResult(BaseModel):
@@ -799,11 +801,79 @@ class GameEngine:
         }
 
     def _save_all(self) -> None:
-        """Save all game state to disk."""
+        """Save all game state to JSON files (legacy method)."""
         self.world.save()
         self.narrative.save()
         self.inventory.save()
         self.player.save()
+
+    def save_to_database(self, player_id: str = "default", save_name: str = "autosave") -> int:
+        """
+        Save game state to database.
+
+        Args:
+            player_id: Unique identifier for the player
+            save_name: Name for the save slot
+
+        Returns:
+            Save ID in database
+        """
+        repo = get_repository()
+
+        # Convert current state to database models
+        game_save = GameSave(
+            player_id=player_id,
+            save_name=save_name,
+            player=StateConverter.player_to_data(self.player),
+            world=StateConverter.world_to_data(self.world),
+            inventory=StateConverter.inventory_to_data(self.inventory),
+            narrative=StateConverter.narrative_to_data(self.narrative),
+            combat=StateConverter.combat_to_data(self.combat),
+        )
+
+        return repo.save_game(game_save)
+
+    def load_from_database(self, save_id: Optional[int] = None, player_id: str = "default") -> bool:
+        """
+        Load game state from database.
+
+        Args:
+            save_id: Specific save ID to load, or None for most recent
+            player_id: Player ID to load saves for
+
+        Returns:
+            True if load was successful
+        """
+        repo = get_repository()
+        save = repo.load_game(save_id, player_id)
+
+        if save is None:
+            return False
+
+        # Restore state from database
+        StateConverter.data_to_player(save.player, self.player)
+        StateConverter.data_to_world(save.world, self.world)
+        StateConverter.data_to_inventory(save.inventory, self.inventory)
+        StateConverter.data_to_narrative(save.narrative, self.narrative)
+        self.combat = StateConverter.data_to_combat(save.combat)
+
+        # Update internal references
+        self._player_state = self.player
+        self._world_state = self.world
+        self._inventory_state = self.inventory
+        self._narrative_memory = self.narrative
+
+        return True
+
+    def list_saves(self, player_id: str = "default") -> list[dict]:
+        """List all saves for a player."""
+        repo = get_repository()
+        return repo.list_saves(player_id)
+
+    def delete_save(self, save_id: int) -> bool:
+        """Delete a saved game."""
+        repo = get_repository()
+        return repo.delete_game(save_id)
 
 
 # Global instance

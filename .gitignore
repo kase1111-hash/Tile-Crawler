@@ -53,6 +53,10 @@ Thumbs.db
 backend/*.json
 !backend/tests/*.json
 
+# Database files (generated at runtime)
+backend/*.db
+!backend/tests/*.db
+
 # Playwright
 frontend/playwright-report/
 frontend/test-results/
