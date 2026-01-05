@@ -59,7 +59,7 @@ export function GameMap({ map, className = '' }: GameMapProps) {
   // Process the map to add color spans
   const coloredMap = useMemo(() => {
     return map.map((row, rowIndex) => (
-      <div key={rowIndex} className="flex">
+      <div key={rowIndex} className="flex justify-center">
         {row.split('').map((char, charIndex) => (
           <span key={charIndex} className={getTileClass(char)}>
             {char}
@@ -80,8 +80,8 @@ export function GameMap({ map, className = '' }: GameMapProps) {
   }
 
   return (
-    <div className={`game-panel ${className}`}>
-      <div className="tile-map text-xl md:text-2xl lg:text-3xl flex flex-col items-center">
+    <div className={`game-panel ${className} flex items-center justify-center`}>
+      <div className="tile-map flex flex-col items-center">
         {coloredMap}
       </div>
     </div>

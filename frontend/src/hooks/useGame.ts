@@ -35,6 +35,21 @@ export function useGame(): UseGameReturn {
   const [narrative, setNarrative] = useState<string>('');
   const [dialogueData, setDialogueData] = useState<DialogueData | null>(null);
   const audioEngine = useRef(getAudioEngine());
+  const prefetchRef = useRef<AbortController | null>(null);
+
+  // Prefetch adjacent rooms in background (silent, doesn't affect UI)
+  const prefetchRooms = useCallback(() => {
+    // Cancel any existing prefetch
+    if (prefetchRef.current) {
+      prefetchRef.current.abort();
+    }
+    prefetchRef.current = new AbortController();
+
+    // Fire and forget - don't await, don't affect UI
+    api.prefetch().catch(() => {
+      // Silently ignore prefetch errors
+    });
+  }, []);
 
   // Play audio from response
   const playAudio = useCallback(async (audio: AudioBatch | undefined) => {
@@ -48,7 +63,7 @@ export function useGame(): UseGameReturn {
   }, []);
 
   // Helper to handle API responses
-  const handleResponse = useCallback((response: ActionResponse) => {
+  const handleResponse = useCallback((response: ActionResponse, shouldPrefetch: boolean = false) => {
     if (response.narrative) {
       setNarrative(response.narrative);
     }
@@ -66,7 +81,12 @@ export function useGame(): UseGameReturn {
     if (response.audio) {
       playAudio(response.audio);
     }
-  }, [playAudio]);
+
+    // Prefetch adjacent rooms in background if requested
+    if (shouldPrefetch && response.success) {
+      prefetchRooms();
+    }
+  }, [playAudio, prefetchRooms]);
 
   // Wrap API calls with loading state
   const withLoading = useCallback(
@@ -91,7 +111,7 @@ export function useGame(): UseGameReturn {
     async (playerName: string = 'Adventurer') => {
       const response = await withLoading(() => api.newGame(playerName));
       if (response) {
-        handleResponse(response);
+        handleResponse(response, true); // Prefetch after new game
         setDialogueData(null);
       }
     },
@@ -103,8 +123,9 @@ export function useGame(): UseGameReturn {
     if (response && response.state) {
       setGameState(response.state);
       setNarrative('Game loaded. Your adventure continues...');
+      prefetchRooms(); // Prefetch after load
     }
-  }, [withLoading]);
+  }, [withLoading, prefetchRooms]);
 
   const saveGame = useCallback(async () => {
     const response = await withLoading(() => api.saveGame());
@@ -117,7 +138,7 @@ export function useGame(): UseGameReturn {
     async (direction: Direction) => {
       const response = await withLoading(() => api.move(direction));
       if (response) {
-        handleResponse(response);
+        handleResponse(response, true); // Prefetch after move
         setDialogueData(null);
       }
     },
@@ -134,7 +155,7 @@ export function useGame(): UseGameReturn {
   const flee = useCallback(async () => {
     const response = await withLoading(() => api.flee());
     if (response) {
-      handleResponse(response);
+      handleResponse(response, true); // Prefetch after flee (might be in new room)
     }
   }, [withLoading, handleResponse]);
 
@@ -186,13 +207,14 @@ export function useGame(): UseGameReturn {
         if (state && state.player) {
           setGameState(state);
           setNarrative('Welcome back, adventurer...');
+          prefetchRooms(); // Prefetch on initial load
         }
       } catch {
         // No existing game, that's fine
       }
     };
     initGame();
-  }, []);
+  }, [prefetchRooms]);
 
   return {
     gameState,

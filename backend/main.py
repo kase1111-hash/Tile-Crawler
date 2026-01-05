@@ -1046,6 +1046,29 @@ async def rest():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# =============================================================================
+# Prefetch Endpoint (for performance optimization)
+# =============================================================================
+
+@app.post(
+    "/api/game/prefetch",
+    tags=["Game Management"],
+    summary="Prefetch adjacent rooms",
+    description="""Pre-generate rooms for all available exits.
+
+This improves perceived performance by generating rooms in the background
+while the player is viewing the current room."""
+)
+async def prefetch():
+    """Prefetch adjacent rooms for faster navigation."""
+    try:
+        engine = get_game_engine()
+        results = await engine.prefetch_adjacent_rooms()
+        return {"success": True, "prefetched": results}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 # Generic action endpoint for flexibility
 @app.post(
     "/api/game/action",

@@ -106,6 +106,11 @@ export const api = {
   async rest(): Promise<ActionResponse> {
     return request('/game/rest', { method: 'POST' });
   },
+
+  // Prefetch adjacent rooms for faster navigation
+  async prefetch(): Promise<{ success: boolean; prefetched: Record<string, boolean> }> {
+    return request('/game/prefetch', { method: 'POST' });
+  },
 };
 
 export { ApiError };
