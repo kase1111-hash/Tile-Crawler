@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { GameMenu } from './components';
-import type { Direction } from './types/game';
 
 function App() {
   const {
@@ -22,7 +21,6 @@ function App() {
     useItem,
     talk,
     rest,
-    clearError,
     clearDialogue,
   } = useGame();
 
@@ -162,10 +160,22 @@ function App() {
     exits.down && '↓'
   ].filter(Boolean).join(' ');
 
+  // Parse stat strings like "100/100" into [current, max]
+  const parseStat = (stat: string): [number, number] => {
+    const parts = stat.split('/');
+    const current = parseInt(parts[0]) || 0;
+    const max = parseInt(parts[1]) || 1;
+    return [current, max];
+  };
+
+  const [hp, maxHp] = parseStat(gameState.player.hp);
+  const [mana, maxMana] = parseStat(gameState.player.mana);
+  const [xp, xpToLevel] = parseStat(gameState.player.xp);
+
   // Format HP/MP bars
-  const hpPct = Math.round((gameState.player.hp / gameState.player.max_hp) * 100);
-  const mpPct = Math.round((gameState.player.mana / gameState.player.max_mana) * 100);
-  const xpPct = Math.round((gameState.player.xp / gameState.player.xp_to_level) * 100);
+  const hpPct = Math.round((hp / maxHp) * 100);
+  const mpPct = Math.round((mana / maxMana) * 100);
+  const xpPct = Math.round((xp / xpToLevel) * 100);
 
   const hpBar = '█'.repeat(Math.floor(hpPct / 5)) + '░'.repeat(20 - Math.floor(hpPct / 5));
   const mpBar = '█'.repeat(Math.floor(mpPct / 5)) + '░'.repeat(20 - Math.floor(mpPct / 5));
@@ -179,9 +189,9 @@ function App() {
         <span className="text-dungeon-muted"> │ </span>
         <span>Lv.{gameState.player.level}</span>
         <span className="text-dungeon-muted"> │ </span>
-        <span className="text-red-400">HP:{gameState.player.hp}/{gameState.player.max_hp}</span>
+        <span className="text-red-400">HP:{hp}/{maxHp}</span>
         <span className="text-dungeon-muted"> │ </span>
-        <span className="text-blue-400">MP:{gameState.player.mana}/{gameState.player.max_mana}</span>
+        <span className="text-blue-400">MP:{mana}/{maxMana}</span>
         <span className="text-dungeon-muted"> │ </span>
         <span className="text-yellow-400">Gold:{gameState.gold}</span>
         <span className="text-dungeon-muted"> │ </span>
@@ -303,9 +313,9 @@ function App() {
       <div className="tui-narrative">
         {error && <div className="text-red-400">! {error}</div>}
         <div>{narrative}</div>
-        {gameState.narrative.recent_events.slice(-2).map((event, i) => (
-          <div key={i} className="text-dungeon-muted">{event}</div>
-        ))}
+        {gameState.narrative.recent_events && (
+          <div className="text-dungeon-muted">{gameState.narrative.recent_events}</div>
+        )}
       </div>
     </div>
   );
