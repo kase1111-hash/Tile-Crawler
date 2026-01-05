@@ -1,60 +1,152 @@
-// Main App Component for Tile-Crawler - First Person ASCII View
+// Main App Component for Tile-Crawler - Fullscreen Pseudo-3D View
 
 import { useCallback, useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { GameMenu } from './components';
 
-// First-person ASCII art for different views
-const ASCII_VIEWS = {
-  corridor: [
-    "          ┌─────────────────────┐          ",
-    "         ╱                       ╲         ",
-    "        ╱   ┌───────────────┐     ╲        ",
-    "       ╱   ╱                 ╲     ╲       ",
-    "      ╱   ╱   ┌───────────┐   ╲     ╲      ",
-    "     ╱   ╱   ╱             ╲   ╲     ╲     ",
-    "    │   │   │   ▒▒▒▒▒▒▒▒▒   │   │     │    ",
-    "    │   │   │   ▒▒▒▒▒▒▒▒▒   │   │     │    ",
-    "    │   │   │   ▒▒▒▒▒▒▒▒▒   │   │     │    ",
-    "────┴───┴───┴───────────────┴───┴─────┴────",
-  ],
-  wall: [
-    "╔═══════════════════════════════════════════╗",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║",
-    "╚═══════════════════════════════════════════╝",
-  ],
-  doorway: [
-    "▓▓▓▓▓▓▓▓▓▓▓┌─────────────────────┐▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│                     │▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│    ░░░░░░░░░░░░░    │▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│    ░░░░░░░░░░░░░    │▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│    ░░░░░░░░░░░░░    │▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│    ░░░░░░░░░░░░░    │▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│    ░░░░░░░░░░░░░    │▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│    ░░░░░░░░░░░░░    │▓▓▓▓▓▓▓▓▓▓▓",
-    "▓▓▓▓▓▓▓▓▓▓▓│                     │▓▓▓▓▓▓▓▓▓▓▓",
-    "───────────┴─────────────────────┴───────────",
-  ],
-  room: [
-    "┌─────────────────────────────────────────────┐",
-    "│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │",
-    "│  ░                                       ░  │",
-    "│  ░                                       ░  │",
-    "│  ░                                       ░  │",
-    "│  ░                                       ░  │",
-    "│  ░                                       ░  │",
-    "│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │",
-    "│                                             │",
-    "└─────────────────────────────────────────────┘",
-  ],
-};
+// Generate pseudo-3D dungeon view
+function render3DView(
+  forward: boolean,
+  left: boolean,
+  right: boolean,
+  width: number,
+  height: number
+): string[] {
+  const lines: string[] = [];
+  const midX = Math.floor(width / 2);
+  const midY = Math.floor(height / 2);
+
+  // Perspective parameters
+  const horizonY = Math.floor(height * 0.4);
+  const floorStart = horizonY + 1;
+
+  // Characters
+  const WALL = '▓';
+  const FLOOR = '░';
+  const CEIL = '·';
+  const DARK = ' ';
+  const PASSAGE = '▒';
+
+  for (let y = 0; y < height; y++) {
+    let line = '';
+
+    for (let x = 0; x < width; x++) {
+      const distFromMidX = Math.abs(x - midX);
+      const distFromMidY = Math.abs(y - midY);
+
+      // Calculate perspective walls
+      const perspectiveRatio = y < horizonY
+        ? (horizonY - y) / horizonY
+        : (y - horizonY) / (height - horizonY);
+
+      const wallWidth = Math.floor(width * 0.35 * (1 - perspectiveRatio * 0.7));
+      const innerWallWidth = Math.floor(wallWidth * 0.6);
+
+      const leftWallOuter = wallWidth;
+      const leftWallInner = innerWallWidth;
+      const rightWallOuter = width - wallWidth - 1;
+      const rightWallInner = width - innerWallWidth - 1;
+
+      // Ceiling zone (top portion)
+      if (y < horizonY) {
+        const ceilDepth = (horizonY - y) / horizonY;
+
+        // Left wall
+        if (x < leftWallOuter) {
+          if (left && x > leftWallOuter * 0.3 && y > horizonY * 0.3) {
+            line += PASSAGE;
+          } else {
+            line += WALL;
+          }
+        }
+        // Right wall
+        else if (x > rightWallOuter) {
+          if (right && x < rightWallOuter + (width - rightWallOuter) * 0.7 && y > horizonY * 0.3) {
+            line += PASSAGE;
+          } else {
+            line += WALL;
+          }
+        }
+        // Ceiling
+        else {
+          if (forward) {
+            // Show depth - passage ahead
+            const centerDist = Math.abs(x - midX);
+            const depthZone = Math.floor(horizonY * 0.5);
+            if (y > depthZone && centerDist < wallWidth * 0.5) {
+              line += DARK;
+            } else {
+              line += CEIL;
+            }
+          } else {
+            // Dead end - wall ahead
+            if (y > horizonY * 0.6) {
+              line += WALL;
+            } else {
+              line += CEIL;
+            }
+          }
+        }
+      }
+      // Horizon line
+      else if (y === horizonY) {
+        if (x < leftWallInner || x > rightWallInner) {
+          line += WALL;
+        } else if (forward) {
+          line += DARK;
+        } else {
+          line += WALL;
+        }
+      }
+      // Floor zone (bottom portion)
+      else {
+        const floorDepth = (y - horizonY) / (height - horizonY);
+
+        // Left wall
+        if (x < leftWallOuter) {
+          if (left && x > leftWallOuter * 0.3 && y < height - (height - horizonY) * 0.3) {
+            line += PASSAGE;
+          } else {
+            line += WALL;
+          }
+        }
+        // Right wall
+        else if (x > rightWallOuter) {
+          if (right && x < rightWallOuter + (width - rightWallOuter) * 0.7 && y < height - (height - horizonY) * 0.3) {
+            line += PASSAGE;
+          } else {
+            line += WALL;
+          }
+        }
+        // Floor
+        else {
+          if (forward) {
+            const centerDist = Math.abs(x - midX);
+            const nearFloor = y > height - (height - horizonY) * 0.4;
+            if (nearFloor) {
+              // Close floor tiles
+              const tileX = Math.floor(x / 4) % 2;
+              const tileY = Math.floor((y - floorStart) / 2) % 2;
+              line += (tileX === tileY) ? FLOOR : '·';
+            } else if (centerDist < wallWidth * 0.5) {
+              line += DARK;
+            } else {
+              line += FLOOR;
+            }
+          } else {
+            // Dead end floor
+            const tileX = Math.floor(x / 4) % 2;
+            const tileY = Math.floor((y - floorStart) / 2) % 2;
+            line += (tileX === tileY) ? FLOOR : '·';
+          }
+        }
+      }
+    }
+    lines.push(line);
+  }
+
+  return lines;
+}
 
 function App() {
   const {
@@ -80,7 +172,6 @@ function App() {
   const [showInventory, setShowInventory] = useState(false);
   const [facing, setFacing] = useState<'north' | 'south' | 'east' | 'west'>('north');
 
-  // Keyboard controls
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!gameState || isLoading) return;
@@ -90,7 +181,6 @@ function App() {
       const items = gameState.inventory;
       const exits = gameState.room.exits;
 
-      // Escape/Q closes overlays
       if (e.key === 'Escape' || (e.key.toLowerCase() === 'q' && (showInventory || dialogueData))) {
         if (showInventory) { setShowInventory(false); return; }
         if (dialogueData) { clearDialogue(); return; }
@@ -98,13 +188,11 @@ function App() {
 
       if (dialogueData) return;
 
-      // Inventory toggle
       if (e.key.toLowerCase() === 'i' && !inCombat) {
         setShowInventory(prev => !prev);
         return;
       }
 
-      // Inventory navigation
       if (showInventory) {
         if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'k') {
           setSelectedItem(i => Math.max(0, i - 1));
@@ -116,30 +204,31 @@ function App() {
         return;
       }
 
-      // Combat controls
       if (inCombat) {
         if (e.key.toLowerCase() === 'a' || e.key === '1') attack();
         if (e.key.toLowerCase() === 'f' || e.key === '2') flee();
         return;
       }
 
-      // First-person movement
       switch (e.key.toLowerCase()) {
-        case 'w': // Move forward
+        case 'w':
           if (exits[facing]) move(facing);
           break;
-        case 's': // Move backward (turn around and go back)
+        case 's': {
           const opposite = { north: 'south', south: 'north', east: 'west', west: 'east' } as const;
           if (exits[opposite[facing]]) move(opposite[facing]);
           break;
-        case 'a': // Turn left
+        }
+        case 'a': {
           const leftTurn = { north: 'west', west: 'south', south: 'east', east: 'north' } as const;
           setFacing(leftTurn[facing]);
           break;
-        case 'd': // Turn right
+        }
+        case 'd': {
           const rightTurn = { north: 'east', east: 'south', south: 'west', west: 'north' } as const;
           setFacing(rightTurn[facing]);
           break;
+        }
         case '<':
           if (exits.up) move('up');
           break;
@@ -160,7 +249,6 @@ function App() {
           break;
       }
 
-      // Number keys for items
       const num = parseInt(e.key);
       if (!isNaN(num) && num >= 1 && num <= 9) {
         const roomItems = gameState.room.items;
@@ -203,143 +291,168 @@ function App() {
 
   const [hp, maxHp] = parseStat(gameState.player.hp);
   const [mana, maxMana] = parseStat(gameState.player.mana);
+  const hpPct = Math.round((hp / maxHp) * 100);
+  const mpPct = Math.round((mana / maxMana) * 100);
 
-  // Determine what to show based on facing direction
-  const canGoForward = exits[facing];
   const leftDir = { north: 'west', west: 'south', south: 'east', east: 'north' } as const;
   const rightDir = { north: 'east', east: 'south', south: 'west', west: 'north' } as const;
+  const backDir = { north: 'south', south: 'north', east: 'west', west: 'east' } as const;
+
+  const canGoForward = exits[facing];
   const canGoLeft = exits[leftDir[facing]];
   const canGoRight = exits[rightDir[facing]];
+  const canGoBack = exits[backDir[facing]];
 
-  // Choose ASCII view based on what's ahead
-  const getView = () => {
-    if (canGoForward) return ASCII_VIEWS.doorway;
-    return ASCII_VIEWS.wall;
-  };
+  // Render the 3D view
+  const viewWidth = 80;
+  const viewHeight = 24;
+  const view3D = render3DView(canGoForward, canGoLeft, canGoRight, viewWidth, viewHeight);
 
-  const currentView = getView();
-
-  // Compass directions
-  const compassDir = { north: 'N', south: 'S', east: 'E', west: 'W' };
+  const compassFull = { north: 'NORTH', south: 'SOUTH', east: 'EAST', west: 'WEST' };
+  const hpBar = '█'.repeat(Math.floor(hpPct / 10)) + '░'.repeat(10 - Math.floor(hpPct / 10));
+  const mpBar = '█'.repeat(Math.floor(mpPct / 10)) + '░'.repeat(10 - Math.floor(mpPct / 10));
 
   return (
-    <div className="fp-container">
-      {/* Header */}
-      <div className="fp-header">
-        <span className="fp-title">TILE CRAWLER</span>
-        <span className="fp-location">{gameState.room.biome} - Floor {gameState.position[2] + 1}</span>
+    <div className="dungeon-container">
+      {/* 3D View */}
+      <div className="view-3d">
+        {view3D.map((line, i) => (
+          <div key={i} className="view-line">{line}</div>
+        ))}
       </div>
 
-      {/* Main view area */}
-      <div className="fp-main">
-        {/* ASCII first-person view */}
-        <div className="fp-view">
-          <div className="fp-compass">
-            Facing: {compassDir[facing]} {canGoLeft && `← ${leftDir[facing][0].toUpperCase()}`} {canGoRight && `${rightDir[facing][0].toUpperCase()} →`}
+      {/* HUD Overlay */}
+      <div className="hud">
+        {/* Top bar */}
+        <div className="hud-top">
+          <div className="hud-compass">
+            <span className="compass-arrow">◄</span>
+            <span className="compass-dir">{compassFull[facing]}</span>
+            <span className="compass-arrow">►</span>
           </div>
-          <div className="fp-scene">
-            {currentView.map((line, i) => (
-              <div key={i} className="fp-line">{line}</div>
-            ))}
-          </div>
-          <div className="fp-forward">
-            {canGoForward ? (
-              <span className="exit-open">[W] A passage leads {facing}</span>
-            ) : (
-              <span className="exit-wall">A solid wall blocks the way</span>
-            )}
+          <div className="hud-location">
+            {gameState.room.biome} · Floor {gameState.position[2] + 1} · ({gameState.position[0]},{gameState.position[1]})
           </div>
         </div>
 
-        {/* Side panel */}
-        <div className="fp-sidebar">
-          <div className="fp-stats">
-            <div className="stat-name">{gameState.player.name} Lv.{gameState.player.level}</div>
-            <div className="stat-row">HP: <span className="hp-val">{hp}/{maxHp}</span></div>
-            <div className="stat-row">MP: <span className="mp-val">{mana}/{maxMana}</span></div>
-            <div className="stat-row">Gold: <span className="gold-val">{gameState.gold}</span></div>
-          </div>
-
-          <div className="fp-exits">
-            <div className="exits-title">Exits:</div>
-            {exits.north && <div className={facing === 'north' ? 'exit-facing' : ''}>North {facing === 'north' && '(ahead)'}</div>}
-            {exits.south && <div className={facing === 'south' ? 'exit-facing' : ''}>South {facing === 'south' && '(ahead)'}</div>}
-            {exits.east && <div className={facing === 'east' ? 'exit-facing' : ''}>East {facing === 'east' && '(ahead)'}</div>}
-            {exits.west && <div className={facing === 'west' ? 'exit-facing' : ''}>West {facing === 'west' && '(ahead)'}</div>}
-            {exits.up && <div>Up (&lt;)</div>}
-            {exits.down && <div>Down (&gt;)</div>}
-            {!exits.north && !exits.south && !exits.east && !exits.west && <div>None</div>}
-          </div>
-
-          {gameState.room.npcs.length > 0 && (
-            <div className="fp-npcs">
-              <div className="npc-title">Present:</div>
-              {gameState.room.npcs.map(npc => <div key={npc} className="npc-name">{npc}</div>)}
+        {/* Left panel - Stats */}
+        <div className="hud-left">
+          <div className="stat-block">
+            <div className="stat-name">{gameState.player.name}</div>
+            <div className="stat-level">Level {gameState.player.level}</div>
+            <div className="stat-bar-row">
+              <span className="stat-label">HP</span>
+              <span className="hp-bar">[{hpBar}]</span>
+              <span className="stat-val">{hp}</span>
             </div>
-          )}
+            <div className="stat-bar-row">
+              <span className="stat-label">MP</span>
+              <span className="mp-bar">[{mpBar}]</span>
+              <span className="stat-val">{mana}</span>
+            </div>
+            <div className="stat-gold">Gold: {gameState.gold}</div>
+          </div>
+        </div>
+
+        {/* Right panel - Exits & Items */}
+        <div className="hud-right">
+          <div className="exits-block">
+            <div className="block-title">EXITS</div>
+            <div className={`exit-dir ${canGoForward ? 'exit-open' : 'exit-blocked'}`}>
+              [W] {canGoForward ? '▶ Forward' : '▌ Blocked'}
+            </div>
+            <div className={`exit-dir ${canGoBack ? 'exit-open' : 'exit-blocked'}`}>
+              [S] {canGoBack ? '◀ Back' : '▌ Blocked'}
+            </div>
+            <div className={`exit-dir ${canGoLeft ? 'exit-open' : 'exit-blocked'}`}>
+              [A] {canGoLeft ? '◄ Left' : '▌ Wall'}
+            </div>
+            <div className={`exit-dir ${canGoRight ? 'exit-open' : 'exit-blocked'}`}>
+              [D] {canGoRight ? '► Right' : '▌ Wall'}
+            </div>
+          </div>
 
           {gameState.room.items.length > 0 && (
-            <div className="fp-items">
-              <div className="items-title">Items here:</div>
-              {gameState.room.items.map((item, i) => (
-                <div key={item.id} className="item-row">[{i + 1}] {item.name}</div>
+            <div className="items-block">
+              <div className="block-title">ITEMS</div>
+              {gameState.room.items.slice(0, 3).map((item, i) => (
+                <div key={item.id} className="item-entry">[{i + 1}] {item.name}</div>
               ))}
             </div>
           )}
+        </div>
 
-          {inCombat && gameState.combat && (
-            <div className="fp-combat">
+        {/* Bottom bar - Messages */}
+        <div className="hud-bottom">
+          <div className="message-text">
+            {error && <span className="msg-error">{error}</span>}
+            {!error && narrative && <span>{narrative}</span>}
+            {!error && !narrative && gameState.room.description}
+          </div>
+          <div className="controls-hint">
+            [WASD] Move · [I] Inventory · [G] Get · [T] Talk · [R] Rest · [Q] Save
+          </div>
+        </div>
+
+        {/* Combat overlay */}
+        {inCombat && gameState.combat && (
+          <div className="combat-overlay">
+            <div className="combat-box">
               <div className="combat-title">⚔ COMBAT ⚔</div>
               <div className="combat-enemy">{gameState.combat.enemy_name}</div>
               <div className="combat-hp">HP: {gameState.combat.enemy_hp}/{gameState.combat.enemy_max_hp}</div>
-              <div className="combat-act">[A]ttack [F]lee</div>
+              <div className="combat-actions">
+                <span className="action-btn">[A] Attack</span>
+                <span className="action-btn">[F] Flee</span>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* NPCs in room */}
+        {gameState.room.npcs.length > 0 && !inCombat && (
+          <div className="npc-indicator">
+            <span className="npc-icon">☺</span>
+            <span>{gameState.room.npcs[0]} is here</span>
+            <span className="npc-hint">[T] Talk</span>
+          </div>
+        )}
       </div>
 
-      {/* Message area */}
-      <div className="fp-messages">
-        {error && <div className="msg-err">&gt; {error}</div>}
-        {narrative && <div className="msg-narr">&gt; {narrative}</div>}
-        {gameState.room.description && <div className="msg-desc">{gameState.room.description}</div>}
-      </div>
-
-      {/* Controls */}
-      <div className="fp-controls">
-        [W]Forward [S]Back [A]Turn Left [D]Turn Right | [I]Inventory [G]Get [T]Talk [R]Rest [Q]Save
-      </div>
-
-      {/* Overlays */}
+      {/* Dialogue overlay */}
       {dialogueData && (
         <div className="overlay">
-          <div className="dlg-box">
-            <div className="dlg-name">{dialogueData.npc_name}</div>
+          <div className="dialogue-box">
+            <div className="dlg-speaker">{dialogueData.npc_name}</div>
             <div className="dlg-text">"{dialogueData.speech}"</div>
-            <div className="dlg-close">[Q] Close</div>
+            <div className="dlg-dismiss">[Q] Close</div>
           </div>
         </div>
       )}
 
+      {/* Inventory overlay */}
       {showInventory && (
         <div className="overlay">
-          <div className="inv-box">
-            <div className="inv-title">═══ INVENTORY ═══</div>
-            {gameState.inventory.length === 0 ? (
-              <div className="inv-empty">(empty)</div>
-            ) : (
-              gameState.inventory.map((item, i) => (
-                <div key={item.id} className={`inv-row ${i === selectedItem ? 'selected' : ''}`}>
-                  {i === selectedItem ? '► ' : '  '}{item.name}{item.quantity > 1 ? ` x${item.quantity}` : ''}
-                </div>
-              ))
-            )}
-            <div className="inv-help">↑↓:Select [U]se [Q]Close</div>
+          <div className="inventory-box">
+            <div className="inv-header">══════ INVENTORY ══════</div>
+            <div className="inv-content">
+              {gameState.inventory.length === 0 ? (
+                <div className="inv-empty">(empty)</div>
+              ) : (
+                gameState.inventory.map((item, i) => (
+                  <div key={item.id} className={`inv-item ${i === selectedItem ? 'selected' : ''}`}>
+                    {i === selectedItem ? '► ' : '  '}{item.name}
+                    {item.quantity > 1 && ` x${item.quantity}`}
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="inv-footer">↑↓ Select · [U] Use · [Q] Close</div>
           </div>
         </div>
       )}
 
-      {isLoading && <div className="loading">◌</div>}
+      {isLoading && <div className="loading-spinner">◌</div>}
     </div>
   );
 }
