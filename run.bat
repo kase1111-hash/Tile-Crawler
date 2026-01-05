@@ -11,8 +11,40 @@ if not exist frontend\node_modules (
     exit /b 1
 )
 
+:: Find compatible Python version using py launcher
+set PYTHON_CMD=
+where py >nul 2>nul
+if %ERRORLEVEL% equ 0 (
+    py -3.13 --version >nul 2>nul
+    if %ERRORLEVEL% equ 0 (
+        set PYTHON_CMD=py -3.13
+        goto :found_python
+    )
+    py -3.12 --version >nul 2>nul
+    if %ERRORLEVEL% equ 0 (
+        set PYTHON_CMD=py -3.12
+        goto :found_python
+    )
+    py -3.11 --version >nul 2>nul
+    if %ERRORLEVEL% equ 0 (
+        set PYTHON_CMD=py -3.11
+        goto :found_python
+    )
+    py -3.10 --version >nul 2>nul
+    if %ERRORLEVEL% equ 0 (
+        set PYTHON_CMD=py -3.10
+        goto :found_python
+    )
+)
+
+:: Fallback to python command
+set PYTHON_CMD=python
+
+:found_python
+echo Using: %PYTHON_CMD%
+
 echo Starting backend server...
-start "Tile-Crawler Backend" cmd /k "cd backend && python main.py"
+start "Tile-Crawler Backend" cmd /k "cd backend && %PYTHON_CMD% main.py"
 
 :: Wait for backend to start
 timeout /t 2 /nobreak >nul
