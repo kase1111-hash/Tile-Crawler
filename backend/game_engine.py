@@ -875,6 +875,54 @@ class GameEngine:
         repo = get_repository()
         return repo.delete_game(save_id)
 
+    async def prefetch_adjacent_rooms(self) -> dict[str, bool]:
+        """
+        Pre-generate rooms for all available exits.
+        Returns dict of direction -> success status.
+        """
+        if self.combat and self.combat.in_combat:
+            return {}  # Don't prefetch during combat
+
+        current_room = self.world.get_current_room()
+        if not current_room:
+            return {}
+
+        x, y, z = self.world.current_position
+        results = {}
+
+        direction_map = {
+            "north": (0, -1, 0),
+            "south": (0, 1, 0),
+            "east": (1, 0, 0),
+            "west": (-1, 0, 0),
+            "up": (0, 0, -1),
+            "down": (0, 0, 1)
+        }
+
+        for direction, (dx, dy, dz) in direction_map.items():
+            # Check if exit exists
+            if not current_room.exits.get(direction, False):
+                continue
+
+            new_x, new_y, new_z = x + dx, y + dy, z + dz
+
+            # Check if room already exists
+            if self.world.room_exists(new_x, new_y, new_z):
+                results[direction] = True
+                continue
+
+            # Generate the room in background
+            try:
+                biome = self._determine_biome(new_z)
+                exits = self._determine_exits(new_x, new_y, new_z, direction)
+                room = await self._generate_room(new_x, new_y, new_z, biome, exits)
+                results[direction] = room is not None
+            except Exception as e:
+                print(f"Prefetch failed for {direction}: {e}")
+                results[direction] = False
+
+        return results
+
 
 # Global instance
 _game_engine: Optional[GameEngine] = None
