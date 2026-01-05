@@ -7,11 +7,45 @@ echo.
 :: Check for Python
 where python >nul 2>nul
 if %ERRORLEVEL% neq 0 (
-    echo ERROR: Python not found. Please install Python 3.10+
+    echo ERROR: Python not found. Please install Python 3.10-3.13
     echo Download from: https://www.python.org/downloads/
     pause
     exit /b 1
 )
+
+:: Check Python version (3.10-3.13 required)
+for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYVER=%%i
+echo Detected Python %PYVER%
+
+:: Extract major.minor version
+for /f "tokens=1,2 delims=." %%a in ("%PYVER%") do (
+    set PYMAJOR=%%a
+    set PYMINOR=%%b
+)
+
+:: Check version compatibility
+if %PYMAJOR% NEQ 3 (
+    echo ERROR: Python 3.x required, found Python %PYMAJOR%
+    pause
+    exit /b 1
+)
+
+if %PYMINOR% LSS 10 (
+    echo ERROR: Python 3.10+ required, found Python 3.%PYMINOR%
+    echo Download from: https://www.python.org/downloads/
+    pause
+    exit /b 1
+)
+
+if %PYMINOR% GTR 13 (
+    echo ERROR: Python 3.14+ is not yet supported by pydantic
+    echo Please install Python 3.10, 3.11, 3.12, or 3.13
+    echo Download from: https://www.python.org/downloads/release/python-3130/
+    pause
+    exit /b 1
+)
+
+echo Python version OK
 
 :: Check for Node.js
 where node >nul 2>nul
@@ -22,6 +56,7 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
+echo.
 echo [1/4] Installing backend dependencies...
 cd backend
 pip install -r requirements.txt
