@@ -73,8 +73,6 @@ export class AudioEngine {
   // State
   private settings: AudioSettings = { ...DEFAULT_SETTINGS };
   private isInitialized = false;
-  private activeAmbient: AudioBufferSourceNode | null = null;
-  private activeMusic: AudioBufferSourceNode | null = null;
   private audioQueue: AudioIntent[] = [];
   private isProcessingQueue = false;
 
