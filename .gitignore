@@ -61,3 +61,6 @@ backend/*.db
 frontend/playwright-report/
 frontend/test-results/
 frontend/playwright/.cache/
+
+# Generated assets (regenerate with scripts/generate_font.py --sprites)
+frontend/public/sprites/
