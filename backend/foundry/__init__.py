@@ -41,6 +41,12 @@ from .compiler import (
     TileCompiler,
     GlyphOutput,
 )
+from .font_generator import (
+    FontGenerator,
+    TileRasterizer,
+    generate_tile_font,
+    export_tile_sprites,
+)
 
 __all__ = [
     # Grammar
@@ -68,4 +74,9 @@ __all__ = [
     # Compiler
     "TileCompiler",
     "GlyphOutput",
+    # Font Generation
+    "FontGenerator",
+    "TileRasterizer",
+    "generate_tile_font",
+    "export_tile_sprites",
 ]
