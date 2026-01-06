@@ -33,3 +33,8 @@ bcrypt>=4.1.2
 pytest>=7.4.4
 pytest-asyncio>=0.23.3
 pytest-cov>=4.1.0
+
+# Font Generation Pipeline
+pillow>=10.2.0
+fonttools>=4.47.0
+numpy>=1.26.0

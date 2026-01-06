@@ -477,6 +477,15 @@ async def get_game_state():
     """Get the current game state."""
     try:
         engine = get_game_engine()
+
+        # Ensure room exists at current position
+        x, y, z = engine.world.current_position
+        if not engine.world.room_exists(x, y, z):
+            # Generate a starting room if none exists
+            biome = engine._determine_biome(z)
+            exits = {"south": True} if (x, y, z) == (0, 0, 0) else engine._determine_exits(x, y, z, "north")
+            await engine._generate_room(x, y, z, biome, exits)
+
         state = engine.get_game_state()
         return GameStateResponse(**state)
     except Exception as e:
