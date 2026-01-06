@@ -14,7 +14,6 @@ function render3DView(
 ): string[] {
   const lines: string[] = [];
   const midX = Math.floor(width / 2);
-  const midY = Math.floor(height / 2);
 
   // Perspective parameters
   const horizonY = Math.floor(height * 0.4);
@@ -31,9 +30,6 @@ function render3DView(
     let line = '';
 
     for (let x = 0; x < width; x++) {
-      const distFromMidX = Math.abs(x - midX);
-      const distFromMidY = Math.abs(y - midY);
-
       // Calculate perspective walls
       const perspectiveRatio = y < horizonY
         ? (horizonY - y) / horizonY
@@ -49,8 +45,6 @@ function render3DView(
 
       // Ceiling zone (top portion)
       if (y < horizonY) {
-        const ceilDepth = (horizonY - y) / horizonY;
-
         // Left wall
         if (x < leftWallOuter) {
           if (left && x > leftWallOuter * 0.3 && y > horizonY * 0.3) {
@@ -100,8 +94,6 @@ function render3DView(
       }
       // Floor zone (bottom portion)
       else {
-        const floorDepth = (y - horizonY) / (height - horizonY);
-
         // Left wall
         if (x < leftWallOuter) {
           if (left && x > leftWallOuter * 0.3 && y < height - (height - horizonY) * 0.3) {
