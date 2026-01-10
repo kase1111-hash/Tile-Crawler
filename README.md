@@ -1,8 +1,12 @@
 Tile-Crawler
 An LLM-Powered Text-Based Dungeon Crawler with Custom Font Tilesets
-Tile-Crawler is a next-generation roguelike that merges procedural world generation, LLM storytelling, and ASCII/roguelike visual aesthetics. It uses large language models as dynamic dungeon masters that output text-based tile grids, rendered in-browser using custom font tilesets.
+
+**LLM dungeon crawler** | **AI-powered roguelike** | **procedural game design** | **natural language gaming**
+
+Tile-Crawler is a next-generation **AI roguelike** that merges **procedural world generation**, **LLM storytelling**, and ASCII/roguelike visual aesthetics. It uses **large language models as dynamic AI dungeon masters** that output text-based tile grids, rendered in-browser using custom font tilesets. This **AI game master** creates infinitely replayable **text-based adventures** with **narrative AI** that maintains story coherence and player agency.
 🎮 Overview
-Tile-Crawler represents a new approach to procedural game design: instead of hardcoded rules and static content, the game world is generated and narrated by an AI that maintains narrative continuity, remembers your actions, and creates coherent, evolving dungeons as you explore.
+
+Tile-Crawler represents a new approach to **AI-driven procedural game design**: instead of hardcoded rules and static content, the game world is generated and narrated by an **LLM game engine** that maintains **narrative continuity**, remembers your actions, and creates coherent, evolving dungeons as you explore. This is **natural language programming** applied to gaming—where prose becomes gameplay and **human intent** drives the experience.
 Core Concept:
 LLM (Game Master)
        ↓
@@ -504,14 +508,18 @@ Email: your.email@example.com
 Discord: Tile-Crawler Community
 
 🌟 Why This Matters
-Tile-Crawler represents a convergence of three powerful traditions:
 
-Roguelike Gameplay: Procedural generation, permadeath, exploration
-Interactive Fiction: Narrative depth, player agency
-AI-Powered Worlds: Dynamic content that responds to player choices
+Tile-Crawler represents a convergence of three powerful traditions in **AI game development**:
 
-By using LLMs as procedural content generators and dungeon masters, we can create infinitely replayable experiences that feel handcrafted and narratively coherent. The custom font tileset approach bridges the gap between text-based and graphical games, offering the best of both worlds: the flexibility of text with the visual appeal of graphics.
-This is more than a game—it's a new medium for interactive storytelling.
+- **Roguelike Gameplay**: Procedural generation, permadeath, exploration
+- **Interactive Fiction**: Narrative depth, player agency, **text-based adventure** mechanics
+- **AI-Powered Worlds**: **Dynamic AI content generation** that responds to player choices
+
+By using **LLMs as procedural content generators** and **AI dungeon masters**, we can create infinitely replayable experiences that feel handcrafted and narratively coherent. The custom font tileset approach bridges the gap between **text-based games** and graphical games, offering the best of both worlds: the flexibility of text with the visual appeal of graphics.
+
+This project embodies the **authenticity economy**—where **human-AI collaboration** creates unique experiences, **intent preservation** maintains narrative coherence, and **process legibility** lets players understand how the AI crafts their adventure.
+
+This is more than a game—it's a new medium for **AI interactive storytelling** and **natural language gaming**.
 
 Ready to explore the depths? Start the backend, fire up the frontend, and let the AI dungeon master guide you into the unknown.
 bash# Terminal 1
@@ -520,3 +528,39 @@ cd backend && uvicorn main:app --reload
 # Terminal 2
 cd frontend && npm run dev
 May your torch never fade, adventurer. 🔥
+
+---
+
+## 🔗 Related Projects
+
+Tile-Crawler is part of a broader ecosystem of projects exploring **natural language programming**, **AI agents**, **digital sovereignty**, and **human-AI collaboration**.
+
+### NatLangChain Ecosystem
+*Prose-first blockchain and intent preservation*
+
+- [**NatLangChain**](https://github.com/kase1111-hash/NatLangChain) - Natural language blockchain protocol for recording human intent in prose
+- [**IntentLog**](https://github.com/kase1111-hash/IntentLog) - Git for human reasoning; tracks "why" changes happen via prose commits
+- [**RRA-Module**](https://github.com/kase1111-hash/RRA-Module) - Revenant Repo Agent: converts abandoned repos into autonomous licensing agents
+- [**mediator-node**](https://github.com/kase1111-hash/mediator-node) - LLM mediation layer for matching, negotiation, and closure proposals
+- [**ILR-module**](https://github.com/kase1111-hash/ILR-module) - IP & Licensing Reconciliation for dispute resolution
+- [**Finite-Intent-Executor**](https://github.com/kase1111-hash/Finite-Intent-Executor) - Posthumous execution of predefined intent via smart contracts
+
+### Agent-OS Ecosystem
+*Natural language operating system for AI agents*
+
+- [**Agent-OS**](https://github.com/kase1111-hash/Agent-OS) - Natural-language native operating system (NLOS) for AI agents
+- [**synth-mind**](https://github.com/kase1111-hash/synth-mind) - NLOS-based agent with psychological modules for empathy and growth
+- [**boundary-daemon-**](https://github.com/kase1111-hash/boundary-daemon-) - Trust enforcement layer defining cognition boundaries
+- [**memory-vault**](https://github.com/kase1111-hash/memory-vault) - Secure, owner-sovereign storage for cognitive artifacts
+- [**value-ledger**](https://github.com/kase1111-hash/value-ledger) - Economic accounting layer for cognitive work
+- [**learning-contracts**](https://github.com/kase1111-hash/learning-contracts) - Safety protocols for AI learning and data management
+
+### Security Infrastructure
+
+- [**Boundary-SIEM**](https://github.com/kase1111-hash/Boundary-SIEM) - Security Information and Event Management for AI systems
+
+### Game Development
+
+- [**Shredsquatch**](https://github.com/kase1111-hash/Shredsquatch) - 3D first-person snowboarding infinite runner (SkiFree homage)
+- [**Midnight-pulse**](https://github.com/kase1111-hash/Midnight-pulse) - Procedurally generated synthwave night drive
+- [**Long-Home**](https://github.com/kase1111-hash/Long-Home) - Atmospheric indie game built with Godot
