@@ -27,7 +27,7 @@
     {
       "id": "floor.stone",
       "codepoint": "U+E100",
-      "char": ".",
+      "char": "∙",
       "name": "Stone Floor",
       "category": "ground",
       "tags": ["walkable", "solid"],
@@ -40,7 +40,7 @@
     {
       "id": "floor.stone.cracked",
       "codepoint": "U+E101",
-      "char": ",",
+      "char": "≈",
       "name": "Cracked Stone",
       "category": "ground",
       "tags": ["walkable", "damaged"],
@@ -63,7 +63,7 @@
     {
       "id": "floor.grass",
       "codepoint": "U+E103",
-      "char": "\"",
+      "char": "♣",
       "name": "Grass",
       "category": "ground",
       "tags": ["walkable", "natural", "outdoor"],
@@ -74,7 +74,7 @@
     {
       "id": "floor.sand",
       "codepoint": "U+E104",
-      "char": ":",
+      "char": "∵",
       "name": "Sand",
       "category": "ground",
       "tags": ["walkable", "natural"],
@@ -85,7 +85,7 @@
     {
       "id": "floor.wood",
       "codepoint": "U+E105",
-      "char": "=",
+      "char": "≡",
       "name": "Wooden Floor",
       "category": "ground",
       "tags": ["walkable", "constructed"],
@@ -96,7 +96,7 @@
     {
       "id": "floor.tile",
       "codepoint": "U+E106",
-      "char": "+",
+      "char": "╬",
       "name": "Tiled Floor",
       "category": "ground",
       "tags": ["walkable", "constructed"],
@@ -107,7 +107,7 @@
     {
       "id": "floor.moss",
       "codepoint": "U+E107",
-      "char": ";",
+      "char": "◦",
       "name": "Mossy Stone",
       "category": "ground",
       "tags": ["walkable", "wet", "natural"],
@@ -119,7 +119,7 @@
     {
       "id": "floor.carpet",
       "codepoint": "U+E108",
-      "char": "~",
+      "char": "▒",
       "name": "Carpet",
       "category": "ground",
       "tags": ["walkable", "constructed", "soft"],
@@ -130,7 +130,7 @@
     {
       "id": "floor.bone",
       "codepoint": "U+E109",
-      "char": "*",
+      "char": "†",
       "name": "Bone-Strewn Floor",
       "category": "ground",
       "tags": ["walkable", "macabre"],

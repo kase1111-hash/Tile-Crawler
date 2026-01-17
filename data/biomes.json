@@ -132,7 +132,7 @@
         "floor": "░",
         "rubble": ".",
         "pillar": "║",
-        "grass": "\""
+        "grass": "♣"
       },
       "room_types": ["courtyard", "collapsed_hall", "overgrown_chamber", "tower_base", "archive"],
       "common_enemies": ["goblin", "skeleton_warrior", "stone_golem"],
@@ -207,7 +207,7 @@
       "tile_palette": {
         "tree": "♣",
         "floor": "░",
-        "grass": "\"",
+        "grass": "♣",
         "water": "≈",
         "bush": "♠"
       },
