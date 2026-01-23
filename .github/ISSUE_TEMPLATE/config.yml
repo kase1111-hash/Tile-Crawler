@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/kase1111-hash/Tile-Crawler/tree/main/docs
+    about: Check the documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/kase1111-hash/Tile-Crawler/discussions
+    about: Ask questions and discuss ideas
