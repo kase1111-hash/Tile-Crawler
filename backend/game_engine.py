@@ -464,11 +464,9 @@ class GameEngine:
         flee_roll = random.randint(1, 100)
 
         if flee_roll <= flee_chance:
-            # Successful flee
-            self.combat = None
-
-            # Take one hit on the way out
+            # Successful flee - capture enemy name before clearing combat
             enemy_name = self.combat.enemy_name if self.combat else "enemy"
+            self.combat = None
 
             self._save_all()
 

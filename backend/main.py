@@ -271,10 +271,11 @@ that can be synthesized using TTS and processed with Web Audio API effects.
     },
 )
 
-# Configure CORS
+# Configure CORS - use environment variable for production security
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1278,7 +1279,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
                     player_name = data.get("player_name", "Adventurer")
                     reset_game_engine()
                     engine = get_game_engine()
-                    result = await engine.start_new_game(player_name)
+                    result = await engine.new_game(player_name)
 
                 else:
                     await ws_manager.send_error(player_id, f"Unknown action: {action}")

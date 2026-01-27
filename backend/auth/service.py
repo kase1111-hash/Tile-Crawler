@@ -20,7 +20,10 @@ from .models import User, UserCreate, UserInDB, Token, TokenData
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "tile-crawler-super-secret-key-change-in-production")
+_jwt_secret = os.getenv("JWT_SECRET_KEY")
+if not _jwt_secret and os.getenv("ENVIRONMENT", "development") == "production":
+    raise ValueError("JWT_SECRET_KEY must be set in production environment")
+SECRET_KEY = _jwt_secret or "tile-crawler-dev-secret-key-not-for-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_EXPIRE_DAYS", "7"))
 
