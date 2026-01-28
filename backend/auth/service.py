@@ -6,7 +6,7 @@ Handles user registration, login, password hashing, and JWT token management.
 
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from contextlib import contextmanager
 
@@ -105,7 +105,7 @@ class AuthService:
             Tuple of (token, expires_in_seconds)
         """
         expires_delta = timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
 
         to_encode = {
             "sub": str(user.id),

@@ -19,6 +19,24 @@ from database import get_repository, GameSave
 from database.converter import StateConverter
 
 
+# =============================================================================
+# Game Balance Constants
+# =============================================================================
+
+# Combat constants
+CRITICAL_HIT_CHANCE = 0.05  # 5% chance for critical hit
+CRITICAL_HIT_MULTIPLIER = 2  # Damage multiplier on critical
+
+# Dungeon generation constants
+NEW_EXIT_CHANCE = 0.5  # 50% chance for new exit in generated rooms
+STAIRS_SPAWN_CHANCE = 0.1  # 10% chance for stairs to appear
+MAX_DUNGEON_DEPTH = 10  # Maximum floor depth
+
+# Flee mechanics
+FLEE_BASE_CHANCE = 50  # Base percentage chance to flee
+FLEE_SPEED_MODIFIER = 2  # Multiplier for speed difference
+
+
 class ActionResult(BaseModel):
     """Result of a game action."""
     success: bool
@@ -227,13 +245,13 @@ class GameEngine:
                 adj_room = self.world.get_room(x + dx, y + dy, z)
                 if adj_room and adj_room.exits.get(opposite[direction], False):
                     exits[direction] = True
-                elif random.random() < 0.5:  # 50% chance for new exits
+                elif random.random() < NEW_EXIT_CHANCE:
                     exits[direction] = True
 
         # Chance for stairs
-        if z < 10 and random.random() < 0.1:
+        if z < MAX_DUNGEON_DEPTH and random.random() < STAIRS_SPAWN_CHANCE:
             exits["down"] = True
-        if z > 0 and random.random() < 0.1:
+        if z > 0 and random.random() < STAIRS_SPAWN_CHANCE:
             exits["up"] = True
 
         return exits
@@ -310,8 +328,8 @@ class GameEngine:
         damage = max(1, player_attack - self.combat.enemy_defense // 2)
 
         # Apply critical hit chance
-        if random.random() < 0.05:  # 5% crit chance
-            damage *= 2
+        if random.random() < CRITICAL_HIT_CHANCE:
+            damage *= CRITICAL_HIT_MULTIPLIER
             crit_msg = " Critical hit!"
         else:
             crit_msg = ""
@@ -459,8 +477,9 @@ class GameEngine:
                 narrative="There's nothing to flee from."
             )
 
-        # Calculate flee chance (base 50% + speed bonus)
-        flee_chance = 50 + self.player.get_effective_stat("speed") * 5
+        # Calculate flee chance (base chance + speed bonus)
+        speed_bonus = self.player.get_effective_stat("speed") * FLEE_SPEED_MODIFIER
+        flee_chance = FLEE_BASE_CHANCE + speed_bonus
         flee_roll = random.randint(1, 100)
 
         if flee_roll <= flee_chance:
@@ -742,7 +761,7 @@ class GameEngine:
             }
         )
 
-    def rest(self) -> ActionResult:
+    async def rest(self) -> ActionResult:
         """Rest to recover HP/mana (only in safe rooms)."""
         room = self.world.get_current_room()
 
@@ -937,12 +956,92 @@ class GameEngine:
         return results
 
 
-# Global instance
+# Session-based game engine management
+from session_manager import get_session_manager, GameSession
+
+# Cache of game engines per session
+_session_engines: dict[str, "GameEngine"] = {}
+_engines_lock = None  # Will be initialized on first use
+
+# Legacy global instance for backwards compatibility
 _game_engine: Optional[GameEngine] = None
 
 
+def _get_engines_lock():
+    """Get or create the engines lock."""
+    global _engines_lock
+    import asyncio
+    if _engines_lock is None:
+        _engines_lock = asyncio.Lock()
+    return _engines_lock
+
+
+async def get_game_engine_for_session(session_id: str) -> "GameEngine":
+    """
+    Get a game engine for a specific session.
+
+    This ensures each user has their own isolated game state.
+
+    Args:
+        session_id: Unique session identifier (e.g., "user_123" or "anonymous")
+
+    Returns:
+        GameEngine instance for this session
+    """
+    lock = _get_engines_lock()
+    async with lock:
+        if session_id not in _session_engines:
+            # Get or create session
+            session_mgr = get_session_manager()
+            session = await session_mgr.get_session(session_id)
+
+            # Create engine with session's state
+            engine = GameEngine()
+            engine.world = session.world
+            engine.narrative = session.narrative
+            engine.inventory = session.inventory
+            engine.player = session.player
+
+            _session_engines[session_id] = engine
+
+        return _session_engines[session_id]
+
+
+async def reset_game_engine_for_session(session_id: str) -> "GameEngine":
+    """
+    Reset and return fresh game engine for a session.
+
+    Args:
+        session_id: Unique session identifier
+
+    Returns:
+        Fresh GameEngine instance
+    """
+    lock = _get_engines_lock()
+    async with lock:
+        # Create fresh session
+        session_mgr = get_session_manager()
+        session = await session_mgr.create_new_session(session_id)
+
+        # Create engine with session's state
+        engine = GameEngine()
+        engine.world = session.world
+        engine.narrative = session.narrative
+        engine.inventory = session.inventory
+        engine.player = session.player
+
+        _session_engines[session_id] = engine
+        return engine
+
+
 def get_game_engine() -> GameEngine:
-    """Get the global game engine instance."""
+    """
+    Get the global game engine instance.
+
+    DEPRECATED: Use get_game_engine_for_session() for multi-user support.
+    This function is kept for backwards compatibility but uses a shared
+    global state that doesn't support multiple concurrent users properly.
+    """
     global _game_engine
     if _game_engine is None:
         _game_engine = GameEngine()
@@ -950,7 +1049,17 @@ def get_game_engine() -> GameEngine:
 
 
 def reset_game_engine() -> GameEngine:
-    """Reset and return fresh game engine."""
+    """
+    Reset and return fresh game engine.
+
+    DEPRECATED: Use reset_game_engine_for_session() for multi-user support.
+    """
     global _game_engine
     _game_engine = GameEngine()
     return _game_engine
+
+
+def clear_session_engine(session_id: str) -> None:
+    """Remove a session's engine from cache."""
+    if session_id in _session_engines:
+        del _session_engines[session_id]

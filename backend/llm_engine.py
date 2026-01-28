@@ -7,11 +7,13 @@ for dynamic content generation.
 
 import json
 import os
-import re
+import logging
 from typing import Optional
 from openai import AsyncOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -186,12 +188,23 @@ Rules:
             )
 
             content = response.choices[0].message.content
-            data = json.loads(content)
 
-            return RoomGenerationResponse(**data)
+            # Parse JSON with error handling
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.warning(f"LLM returned invalid JSON: {e}")
+                return self._generate_fallback_room(x, y, z, biome, exits)
+
+            # Validate response structure with Pydantic
+            try:
+                return RoomGenerationResponse.model_validate(data)
+            except ValidationError as e:
+                logger.warning(f"LLM response failed schema validation: {e}")
+                return self._generate_fallback_room(x, y, z, biome, exits)
 
         except Exception as e:
-            print(f"LLM room generation failed: {e}")
+            logger.error(f"LLM room generation failed: {e}")
             return self._generate_fallback_room(x, y, z, biome, exits)
 
     def _generate_fallback_room(
@@ -303,11 +316,29 @@ Respond with JSON:
             )
 
             content = response.choices[0].message.content
-            data = json.loads(content)
-            return DialogueResponse(**data)
+
+            # Parse JSON with error handling
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.warning(f"LLM returned invalid JSON for dialogue: {e}")
+                return DialogueResponse(
+                    speech=f"{npc_name} nods thoughtfully but says nothing.",
+                    mood="neutral"
+                )
+
+            # Validate response structure
+            try:
+                return DialogueResponse.model_validate(data)
+            except ValidationError as e:
+                logger.warning(f"LLM dialogue response failed validation: {e}")
+                return DialogueResponse(
+                    speech=f"{npc_name} nods thoughtfully but says nothing.",
+                    mood="neutral"
+                )
 
         except Exception as e:
-            print(f"LLM dialogue generation failed: {e}")
+            logger.error(f"LLM dialogue generation failed: {e}")
             return DialogueResponse(
                 speech=f"{npc_name} nods thoughtfully but says nothing.",
                 mood="neutral"
@@ -344,6 +375,11 @@ Respond with JSON:
 - "narration": Dramatic 1-2 sentence combat description
 - "dramatic_moment": Boolean for especially intense moments"""
 
+        fallback_response = CombatNarrationResponse(
+            narration=f"You {player_action} the {enemy_name}. {outcome}",
+            dramatic_moment=is_victory or is_defeat
+        )
+
         try:
             response = await self.client.chat.completions.create(
                 model=self.model,
@@ -357,15 +393,24 @@ Respond with JSON:
             )
 
             content = response.choices[0].message.content
-            data = json.loads(content)
-            return CombatNarrationResponse(**data)
+
+            # Parse JSON with error handling
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.warning(f"LLM returned invalid JSON for combat: {e}")
+                return fallback_response
+
+            # Validate response structure
+            try:
+                return CombatNarrationResponse.model_validate(data)
+            except ValidationError as e:
+                logger.warning(f"LLM combat response failed validation: {e}")
+                return fallback_response
 
         except Exception as e:
-            print(f"LLM combat narration failed: {e}")
-            return CombatNarrationResponse(
-                narration=f"You {player_action} the {enemy_name}. {outcome}",
-                dramatic_moment=is_victory or is_defeat
-            )
+            logger.error(f"LLM combat narration failed: {e}")
+            return fallback_response
 
     async def generate_item_description(
         self,
