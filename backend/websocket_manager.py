@@ -186,23 +186,28 @@ class WebSocketManager:
             "timestamp": datetime.now().isoformat()
         })
 
-    def update_last_ping(self, player_id: str) -> None:
+    async def update_last_ping(self, player_id: str) -> None:
         """Update the last ping time for a player (called when pong received)."""
-        if player_id in self._connections:
-            self._connections[player_id].last_ping = datetime.now()
+        async with self._lock:
+            if player_id in self._connections:
+                self._connections[player_id].last_ping = datetime.now()
 
     @property
     def connection_count(self) -> int:
-        """Get the number of active connections."""
+        """Get the number of active connections (snapshot, may be stale)."""
+        # Note: This is a quick snapshot for metrics. For critical operations,
+        # use async methods with proper locking.
         return len(self._connections)
 
-    def is_connected(self, player_id: str) -> bool:
+    async def is_connected(self, player_id: str) -> bool:
         """Check if a player is connected."""
-        return player_id in self._connections
+        async with self._lock:
+            return player_id in self._connections
 
-    def get_connected_players(self) -> Set[str]:
+    async def get_connected_players(self) -> Set[str]:
         """Get set of all connected player IDs."""
-        return set(self._connections.keys())
+        async with self._lock:
+            return set(self._connections.keys())
 
 
 # Singleton instance

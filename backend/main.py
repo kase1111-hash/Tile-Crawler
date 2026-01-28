@@ -8,22 +8,44 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+import re
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
-from game_engine import get_game_engine, reset_game_engine
+from game_engine import (
+    get_game_engine, reset_game_engine,
+    get_game_engine_for_session, reset_game_engine_for_session
+)
 from llm_engine import get_llm_engine
 from audio_engine import get_audio_engine
 from websocket_manager import get_websocket_manager
+from session_manager import get_session_id_for_user, get_session_manager
 from auth import (
     AuthService, get_auth_service, User, UserCreate, UserLogin, Token,
     get_current_user, get_current_user_optional
 )
 
 load_dotenv()
+
+
+# =============================================================================
+# Rate Limiting Configuration
+# =============================================================================
+
+# Rate limit configuration from environment
+RATE_LIMIT_DEFAULT = os.getenv("RATE_LIMIT_DEFAULT", "60/minute")
+RATE_LIMIT_AUTH = os.getenv("RATE_LIMIT_AUTH", "10/minute")
+RATE_LIMIT_GAME = os.getenv("RATE_LIMIT_GAME", "120/minute")
+RATE_LIMIT_LLM = os.getenv("RATE_LIMIT_LLM", "30/minute")
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 
 # =============================================================================
@@ -36,11 +58,30 @@ class NewGameRequest(BaseModel):
 
     player_name: str = Field(
         default="Adventurer",
-        description="The name of the player character",
+        description="The name of the player character (alphanumeric, spaces, hyphens, underscores only)",
         min_length=1,
         max_length=50,
         json_schema_extra={"example": "Brave Hero"}
     )
+
+    @field_validator("player_name")
+    @classmethod
+    def sanitize_player_name(cls, v: str) -> str:
+        """Sanitize player name to prevent injection and path traversal."""
+        # Strip whitespace
+        v = v.strip()
+
+        # Only allow alphanumeric, spaces, hyphens, underscores, and apostrophes
+        if not re.match(r"^[a-zA-Z0-9\s\-_']+$", v):
+            raise ValueError(
+                "Player name can only contain letters, numbers, spaces, hyphens, underscores, and apostrophes"
+            )
+
+        # Prevent path traversal attempts
+        if ".." in v or "/" in v or "\\" in v:
+            raise ValueError("Invalid characters in player name")
+
+        return v
 
 
 class MoveRequest(BaseModel):
@@ -81,6 +122,21 @@ class TalkRequest(BaseModel):
         default="",
         description="Optional message to say to the NPC",
         json_schema_extra={"example": "Hello, what news do you have?"}
+    )
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request to change user password."""
+    model_config = ConfigDict(json_schema_extra={"example": {"old_password": "current123", "new_password": "newsecure456"}})
+
+    old_password: str = Field(
+        description="Current password for verification",
+        json_schema_extra={"example": "current123"}
+    )
+    new_password: str = Field(
+        min_length=6,
+        description="New password (minimum 6 characters)",
+        json_schema_extra={"example": "newsecure456"}
     )
 
 
@@ -255,6 +311,13 @@ An LLM-powered procedural dungeon crawler with TTS-based audio synthesis.
 
 The API returns `audio` intents with comic-book style onomatopoeia (KRAKOOM!, WHOOSH!)
 that can be synthesized using TTS and processed with Web Audio API effects.
+
+## Rate Limiting
+
+API endpoints are rate-limited to prevent abuse:
+- Authentication: 10 requests/minute
+- Game actions: 120 requests/minute
+- LLM-heavy endpoints: 30 requests/minute
     """,
     version="0.1.0",
     openapi_tags=tags_metadata,
@@ -271,14 +334,20 @@ that can be synthesized using TTS and processed with Web Audio API effects.
     },
 )
 
+# Add rate limiter to app state and error handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS - use environment variable for production security
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Only allow methods actually used by the API
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    # Only allow headers needed for the API
+    allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
 
@@ -297,7 +366,8 @@ Username must be 3-50 characters, alphanumeric with underscores/hyphens.
 Password must be at least 6 characters.
 Returns a JWT token for immediate login."""
 )
-async def register(user_data: UserCreate):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def register(request: Request, user_data: UserCreate):
     """Register a new user and return auth token."""
     auth_service = get_auth_service()
     user = auth_service.register(user_data)
@@ -320,7 +390,8 @@ async def register(user_data: UserCreate):
     summary="Login",
     description="Authenticate with username and password to receive a JWT token."
 )
-async def login(credentials: UserLogin):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def login(request: Request, credentials: UserLogin):
     """Login and receive JWT token."""
     auth_service = get_auth_service()
     token = auth_service.login(credentials.username, credentials.password)
@@ -350,19 +421,18 @@ async def get_me(current_user: User = Depends(get_current_user)):
     "/api/auth/change-password",
     tags=["Authentication"],
     summary="Change password",
-    description="Change the password for the current user."
+    description="Change the password for the current user. Passwords are sent securely in the request body."
 )
 async def change_password(
-    old_password: str = Query(description="Current password"),
-    new_password: str = Query(min_length=6, description="New password"),
+    request: ChangePasswordRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Change current user's password."""
     auth_service = get_auth_service()
     success = auth_service.change_password(
         current_user.id,
-        old_password,
-        new_password
+        request.old_password,
+        request.new_password
     )
 
     if not success:
@@ -440,14 +510,27 @@ Start a new game session with the specified player name.
 
 This resets all game state and generates the starting room.
 Returns the initial game state including map, player stats, and audio intent.
+
+**Authentication:** Optional. If authenticated, game is linked to your account.
     """
 )
-async def new_game(request: NewGameRequest):
+@limiter.limit(RATE_LIMIT_LLM)
+async def new_game(
+    request: Request,
+    game_request: NewGameRequest,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Start a new game session."""
     try:
-        engine = reset_game_engine()
+        # Get session ID for this user
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+
+        # Reset and get fresh engine for this session
+        engine = await reset_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
-        result = await engine.new_game(request.player_name)
+        result = await engine.new_game(game_request.player_name)
 
         # Generate room enter audio
         state = engine.get_game_state()
@@ -474,10 +557,15 @@ async def new_game(request: NewGameRequest):
     summary="Get current game state",
     description="Retrieve the complete current game state including player, room, inventory, and stats."
 )
-async def get_game_state():
+async def get_game_state(
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Get the current game state."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
 
         # Ensure room exists at current position
         x, y, z = engine.world.current_position
@@ -511,7 +599,10 @@ async def save_game(
 ):
     """Save the current game state to database."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
 
         # Use user ID if authenticated, otherwise anonymous
         player_id = f"user_{current_user.id}" if current_user else "anonymous"
@@ -547,7 +638,10 @@ async def load_game(
 ):
     """Load saved game state from database."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
 
         # Use user ID if authenticated, otherwise anonymous
         player_id = f"user_{current_user.id}" if current_user else "anonymous"
@@ -584,7 +678,10 @@ async def list_saves(
 ):
     """List all saves for the current user."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
 
         # Use user ID if authenticated, otherwise anonymous
         player_id = f"user_{current_user.id}" if current_user else "anonymous"
@@ -614,7 +711,8 @@ async def delete_save(
 ):
     """Delete a saved game (requires authentication)."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(current_user.id)
+        engine = await get_game_engine_for_session(session_id)
 
         # Verify ownership by checking if save belongs to user
         from database import get_repository
@@ -658,19 +756,27 @@ Returns success/failure, narrative description, updated map, and audio intent.
 May trigger combat if entering a room with enemies.
     """
 )
-async def move(request: MoveRequest):
+@limiter.limit(RATE_LIMIT_LLM)
+async def move(
+    request: Request,
+    move_request: MoveRequest,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Move the player in a direction."""
     valid_directions = ["north", "south", "east", "west", "up", "down"]
-    if request.direction.lower() not in valid_directions:
+    if move_request.direction.lower() not in valid_directions:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid direction. Must be one of: {valid_directions}"
         )
 
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
-        result = await engine.move(request.direction.lower())
+        result = await engine.move(move_request.direction.lower())
 
         # Generate audio based on result
         state = engine.get_game_state()
@@ -710,27 +816,31 @@ async def move(request: MoveRequest):
 
 # Shorthand movement endpoints
 @app.post("/api/game/move/north", response_model=ActionResponse, tags=["Movement"], summary="Move north")
-async def move_north():
+@limiter.limit(RATE_LIMIT_LLM)
+async def move_north(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
     """Move the player north."""
-    return await move(MoveRequest(direction="north"))
+    return await move(request, MoveRequest(direction="north"), current_user)
 
 
 @app.post("/api/game/move/south", response_model=ActionResponse, tags=["Movement"], summary="Move south")
-async def move_south():
+@limiter.limit(RATE_LIMIT_LLM)
+async def move_south(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
     """Move the player south."""
-    return await move(MoveRequest(direction="south"))
+    return await move(request, MoveRequest(direction="south"), current_user)
 
 
 @app.post("/api/game/move/east", response_model=ActionResponse, tags=["Movement"], summary="Move east")
-async def move_east():
+@limiter.limit(RATE_LIMIT_LLM)
+async def move_east(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
     """Move the player east."""
-    return await move(MoveRequest(direction="east"))
+    return await move(request, MoveRequest(direction="east"), current_user)
 
 
 @app.post("/api/game/move/west", response_model=ActionResponse, tags=["Movement"], summary="Move west")
-async def move_west():
+@limiter.limit(RATE_LIMIT_LLM)
+async def move_west(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
     """Move the player west."""
-    return await move(MoveRequest(direction="west"))
+    return await move(request, MoveRequest(direction="west"), current_user)
 
 
 # =============================================================================
@@ -749,10 +859,13 @@ Returns combat results including damage dealt, enemy response, and victory/defea
 Includes audio intents for attack sounds (THWACK!, KRAKOOM! for criticals).
     """
 )
-async def attack():
+async def attack(current_user: Optional[User] = Depends(get_current_user_optional)):
     """Attack the current enemy in combat."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
         result = await engine.attack()
 
@@ -816,10 +929,13 @@ Success is based on player speed vs enemy speed. Failed flee attempts may result
 taking damage. Returns to exploration mode on success.
     """
 )
-async def flee():
+async def flee(current_user: Optional[User] = Depends(get_current_user_optional)):
     """Attempt to flee from combat."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
         result = await engine.flee()
 
@@ -865,10 +981,16 @@ async def flee():
     summary="Take item",
     description="Pick up an item from the current room and add it to inventory."
 )
-async def take_item(request: TakeItemRequest):
+async def take_item(
+    request: TakeItemRequest,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Pick up an item from the current room."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
         result = await engine.take_item(request.item_id)
 
@@ -906,10 +1028,16 @@ Different item types produce different effects:
 
 Audio feedback is generated based on the item type used."""
 )
-async def use_item(request: UseItemRequest):
+async def use_item(
+    request: UseItemRequest,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Use an item from inventory."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
         result = await engine.use_item(request.item_id)
 
@@ -963,10 +1091,15 @@ async def use_item(request: UseItemRequest):
     summary="Get inventory",
     description="Retrieve the player's current inventory items and gold count."
 )
-async def get_inventory():
+async def get_inventory(
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Get the player's inventory."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         state = engine.get_game_state()
         return {
             "inventory": state["inventory"],
@@ -992,12 +1125,20 @@ The LLM generates contextual dialogue responses based on:
 
 Audio feedback reflects the NPC's mood (friendly, hostile, nervous, etc.)."""
 )
-async def talk(request: TalkRequest):
+@limiter.limit(RATE_LIMIT_LLM)
+async def talk(
+    request: Request,
+    talk_request: TalkRequest,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Talk to an NPC in the current room."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
-        result = await engine.talk(request.message)
+        result = await engine.talk(talk_request.message)
 
         # Generate NPC audio based on dialogue mood
         audio_data = None
@@ -1031,12 +1172,15 @@ async def talk(request: TalkRequest):
 
 Generates peaceful ambient audio during rest."""
 )
-async def rest():
+async def rest(current_user: Optional[User] = Depends(get_current_user_optional)):
     """Rest to recover HP and mana (only in safe rooms)."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         audio_engine = get_audio_engine()
-        result = engine.rest()
+        result = await engine.rest()
 
         # Generate rest audio
         if result.success:
@@ -1083,10 +1227,13 @@ async def rest():
 This improves perceived performance by generating rooms in the background
 while the player is viewing the current room."""
 )
-async def prefetch():
+async def prefetch(current_user: Optional[User] = Depends(get_current_user_optional)):
     """Prefetch adjacent rooms for faster navigation."""
     try:
-        engine = get_game_engine()
+        session_id = get_session_id_for_user(
+            current_user.id if current_user else None
+        )
+        engine = await get_game_engine_for_session(session_id)
         results = await engine.prefetch_adjacent_rooms()
         return {"success": True, "prefetched": results}
     except Exception as e:
@@ -1112,13 +1259,20 @@ async def prefetch():
 
 This endpoint provides flexibility for custom UI implementations."""
 )
-async def perform_action(action: str, target: Optional[str] = None):
+async def perform_action(
+    action: str,
+    target: Optional[str] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """
     Perform a generic game action.
 
     Actions: move, attack, flee, take, use, talk, rest
     """
-    engine = get_game_engine()
+    session_id = get_session_id_for_user(
+        current_user.id if current_user else None
+    )
+    engine = await get_game_engine_for_session(session_id)
 
     try:
         if action == "move" and target:
@@ -1134,7 +1288,7 @@ async def perform_action(action: str, target: Optional[str] = None):
         elif action == "talk":
             result = await engine.talk(target or "")
         elif action == "rest":
-            result = engine.rest()
+            result = await engine.rest()
         else:
             raise HTTPException(
                 status_code=400,
@@ -1204,7 +1358,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
 
             # Handle pong responses
             if data.get("type") == "pong":
-                ws_manager.update_last_ping(player_id)
+                await ws_manager.update_last_ping(player_id)
                 continue
 
             action = data.get("action")
