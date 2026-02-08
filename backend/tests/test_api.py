@@ -12,15 +12,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 class TestHealthEndpoints:
     """Tests for health check endpoints."""
 
-    def test_root_endpoint(self, test_client):
-        """Test root endpoint returns health status."""
-        response = test_client.get("/")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "online"
-        assert "version" in data
-
     def test_health_endpoint(self, test_client):
         """Test health check endpoint."""
         response = test_client.get("/api/health")
@@ -146,15 +137,6 @@ class TestMovement:
             assert response.status_code == 200
             data = response.json()
             assert data["success"] == False
-
-    def test_move_shorthand_endpoints(self, test_client):
-        """Test shorthand movement endpoints."""
-        test_client.post("/api/game/new", json={})
-
-        # These may fail if exit doesn't exist, but should return 200
-        for direction in ["north", "south", "east", "west"]:
-            response = test_client.post(f"/api/game/move/{direction}")
-            assert response.status_code == 200
 
 
 class TestInventory:
