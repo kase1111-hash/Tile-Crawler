@@ -10,7 +10,6 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 import re
 from dotenv import load_dotenv
@@ -23,7 +22,6 @@ from game_engine import (
     get_game_engine_for_session, reset_game_engine_for_session
 )
 from llm_engine import get_llm_engine
-from websocket_manager import get_websocket_manager
 from session_manager import get_session_id_for_user, get_session_manager
 from auth import (
     AuthService, get_auth_service, User, UserCreate, UserLogin, Token,
@@ -34,21 +32,35 @@ load_dotenv()
 
 
 # =============================================================================
-# Rate Limiting Configuration
+# Feature Flags
 # =============================================================================
 
-# Rate limit configuration from environment
-RATE_LIMIT_DEFAULT = os.getenv("RATE_LIMIT_DEFAULT", "60/minute")
-RATE_LIMIT_AUTH = os.getenv("RATE_LIMIT_AUTH", "10/minute")
-RATE_LIMIT_GAME = os.getenv("RATE_LIMIT_GAME", "120/minute")
-RATE_LIMIT_LLM = os.getenv("RATE_LIMIT_LLM", "30/minute")
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() == "true"
+WEBSOCKET_ENABLED = os.getenv("WEBSOCKET_ENABLED", "false").lower() == "true"
 
-# Initialize rate limiter
+# When auth is disabled, game endpoints skip user resolution entirely
+if AUTH_ENABLED:
+    get_optional_user = get_current_user_optional
+else:
+    async def get_optional_user():
+        return None
+
+# Conditional WebSocket import
+if WEBSOCKET_ENABLED:
+    from websocket_manager import get_websocket_manager
+
+
+# =============================================================================
+# Rate Limiting Configuration (auth endpoints only)
+# =============================================================================
+
+RATE_LIMIT_AUTH = os.getenv("RATE_LIMIT_AUTH", "10/minute")
+
 limiter = Limiter(key_func=get_remote_address)
 
 
 # =============================================================================
-# Request/Response Models with OpenAPI Documentation
+# Request/Response Models
 # =============================================================================
 
 class NewGameRequest(BaseModel):
@@ -67,16 +79,13 @@ class NewGameRequest(BaseModel):
     @classmethod
     def sanitize_player_name(cls, v: str) -> str:
         """Sanitize player name to prevent injection and path traversal."""
-        # Strip whitespace
         v = v.strip()
 
-        # Only allow alphanumeric, spaces, hyphens, underscores, and apostrophes
         if not re.match(r"^[a-zA-Z0-9\s\-_']+$", v):
             raise ValueError(
                 "Player name can only contain letters, numbers, spaces, hyphens, underscores, and apostrophes"
             )
 
-        # Prevent path traversal attempts
         if ".." in v or "/" in v or "\\" in v:
             raise ValueError("Invalid characters in player name")
 
@@ -121,21 +130,6 @@ class TalkRequest(BaseModel):
         default="",
         description="Optional message to say to the NPC",
         json_schema_extra={"example": "Hello, what news do you have?"}
-    )
-
-
-class ChangePasswordRequest(BaseModel):
-    """Request to change user password."""
-    model_config = ConfigDict(json_schema_extra={"example": {"old_password": "current123", "new_password": "newsecure456"}})
-
-    old_password: str = Field(
-        description="Current password for verification",
-        json_schema_extra={"example": "current123"}
-    )
-    new_password: str = Field(
-        min_length=6,
-        description="New password (minimum 6 characters)",
-        json_schema_extra={"example": "newsecure456"}
     )
 
 
@@ -219,10 +213,6 @@ class SaveLoadResponse(BaseModel):
 
 tags_metadata = [
     {
-        "name": "Authentication",
-        "description": "User registration, login, and profile management",
-    },
-    {
         "name": "Health",
         "description": "API health and status endpoints",
     },
@@ -246,40 +236,42 @@ tags_metadata = [
         "name": "Interaction",
         "description": "Interact with NPCs and the environment",
     },
-    {
+]
+
+if AUTH_ENABLED:
+    tags_metadata.insert(0, {
+        "name": "Authentication",
+        "description": "User registration, login, and profile management",
+    })
+
+if WEBSOCKET_ENABLED:
+    tags_metadata.append({
         "name": "WebSocket",
         "description": "Real-time game updates via WebSocket connection",
-    },
-]
+    })
 
 
 # =============================================================================
 # Application Setup
 # =============================================================================
 
-# Lifespan management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan."""
-    print("🎮 Tile-Crawler Backend Starting...")
+    print("Tile-Crawler Backend Starting...")
     print(f"   LLM Available: {get_llm_engine().is_available()}")
+    print(f"   Auth: {'enabled' if AUTH_ENABLED else 'disabled'}")
+    print(f"   WebSocket: {'enabled' if WEBSOCKET_ENABLED else 'disabled'}")
     yield
-    print("🎮 Tile-Crawler Backend Shutting Down...")
+    print("Tile-Crawler Backend Shutting Down...")
 
 
-# Create FastAPI app with enhanced documentation
 app = FastAPI(
     title="Tile-Crawler API",
     description="""
 # Tile-Crawler Backend API
 
 An LLM-powered procedural dungeon crawler.
-
-## Features
-
-- **Procedural Generation**: Rooms, narratives, and encounters generated by LLM
-- **Turn-Based Combat**: Fight enemies in strategic turn-based battles
-- **Persistent State**: Save and load your progress
 
 ## Quick Start
 
@@ -288,13 +280,6 @@ An LLM-powered procedural dungeon crawler.
 3. **Check inventory**: `GET /api/game/inventory`
 4. **Fight enemies**: `POST /api/game/combat/attack`
 5. **Save progress**: `POST /api/game/save`
-
-## Rate Limiting
-
-API endpoints are rate-limited to prevent abuse:
-- Authentication: 10 requests/minute
-- Game actions: 120 requests/minute
-- LLM-heavy endpoints: 30 requests/minute
     """,
     version="0.1.0",
     openapi_tags=tags_metadata,
@@ -311,161 +296,180 @@ API endpoints are rate-limited to prevent abuse:
     },
 )
 
-# Add rate limiter to app state and error handler
+# Rate limiter (used for auth endpoints only)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Configure CORS - use environment variable for production security
+# Configure CORS
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    # Only allow methods actually used by the API
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    # Only allow headers needed for the API
     allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
 
 # =============================================================================
-# Authentication Endpoints
+# Authentication Endpoints (only when AUTH_ENABLED=true)
 # =============================================================================
 
-@app.post(
-    "/api/auth/register",
-    response_model=Token,
-    tags=["Authentication"],
-    summary="Register new user",
-    description="""Create a new user account.
+if AUTH_ENABLED:
 
-Username must be 3-50 characters, alphanumeric with underscores/hyphens.
-Password must be at least 6 characters.
-Returns a JWT token for immediate login."""
-)
-@limiter.limit(RATE_LIMIT_AUTH)
-async def register(request: Request, user_data: UserCreate):
-    """Register a new user and return auth token."""
-    auth_service = get_auth_service()
-    user = auth_service.register(user_data)
+    class ChangePasswordRequest(BaseModel):
+        """Request to change user password."""
+        model_config = ConfigDict(json_schema_extra={"example": {"old_password": "current123", "new_password": "newsecure456"}})
 
-    if user is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Username or email already exists"
+        old_password: str = Field(
+            description="Current password for verification",
+            json_schema_extra={"example": "current123"}
+        )
+        new_password: str = Field(
+            min_length=6,
+            description="New password (minimum 6 characters)",
+            json_schema_extra={"example": "newsecure456"}
         )
 
-    # Auto-login after registration
-    token = auth_service.login(user_data.username, user_data.password)
-    return token
+    @app.post(
+        "/api/auth/register",
+        response_model=Token,
+        tags=["Authentication"],
+        summary="Register new user",
+        description="""Create a new user account.
 
-
-@app.post(
-    "/api/auth/login",
-    response_model=Token,
-    tags=["Authentication"],
-    summary="Login",
-    description="Authenticate with username and password to receive a JWT token."
-)
-@limiter.limit(RATE_LIMIT_AUTH)
-async def login(request: Request, credentials: UserLogin):
-    """Login and receive JWT token."""
-    auth_service = get_auth_service()
-    token = auth_service.login(credentials.username, credentials.password)
-
-    if token is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid username or password"
-        )
-
-    return token
-
-
-@app.get(
-    "/api/auth/me",
-    response_model=User,
-    tags=["Authentication"],
-    summary="Get current user",
-    description="Get the profile of the currently authenticated user."
-)
-async def get_me(current_user: User = Depends(get_current_user)):
-    """Get current user profile."""
-    return current_user
-
-
-@app.post(
-    "/api/auth/change-password",
-    tags=["Authentication"],
-    summary="Change password",
-    description="Change the password for the current user. Passwords are sent securely in the request body."
-)
-async def change_password(
-    request: ChangePasswordRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Change current user's password."""
-    auth_service = get_auth_service()
-    success = auth_service.change_password(
-        current_user.id,
-        request.old_password,
-        request.new_password
+    Username must be 3-50 characters, alphanumeric with underscores/hyphens.
+    Password must be at least 6 characters.
+    Returns a JWT token for immediate login."""
     )
+    @limiter.limit(RATE_LIMIT_AUTH)
+    async def register(request: Request, user_data: UserCreate):
+        """Register a new user and return auth token."""
+        auth_service = get_auth_service()
+        user = auth_service.register(user_data)
 
-    if not success:
-        raise HTTPException(
-            status_code=400,
-            detail="Current password is incorrect"
+        if user is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Username or email already exists"
+            )
+
+        token = auth_service.login(user_data.username, user_data.password)
+        return token
+
+    @app.post(
+        "/api/auth/login",
+        response_model=Token,
+        tags=["Authentication"],
+        summary="Login",
+        description="Authenticate with username and password to receive a JWT token."
+    )
+    @limiter.limit(RATE_LIMIT_AUTH)
+    async def login(request: Request, credentials: UserLogin):
+        """Login and receive JWT token."""
+        auth_service = get_auth_service()
+        token = auth_service.login(credentials.username, credentials.password)
+
+        if token is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid username or password"
+            )
+
+        return token
+
+    @app.get(
+        "/api/auth/me",
+        response_model=User,
+        tags=["Authentication"],
+        summary="Get current user",
+        description="Get the profile of the currently authenticated user."
+    )
+    async def get_me(current_user: User = Depends(get_current_user)):
+        """Get current user profile."""
+        return current_user
+
+    @app.post(
+        "/api/auth/change-password",
+        tags=["Authentication"],
+        summary="Change password",
+        description="Change the password for the current user."
+    )
+    async def change_password(
+        request: ChangePasswordRequest,
+        current_user: User = Depends(get_current_user)
+    ):
+        """Change current user's password."""
+        auth_service = get_auth_service()
+        success = auth_service.change_password(
+            current_user.id,
+            request.old_password,
+            request.new_password
         )
 
-    return {"success": True, "message": "Password changed successfully"}
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail="Current password is incorrect"
+            )
+
+        return {"success": True, "message": "Password changed successfully"}
+
+    @app.delete(
+        "/api/game/saves/{save_id}",
+        tags=["Game Management"],
+        summary="Delete save",
+        description="""Delete a specific saved game by ID.
+
+    **Authentication:** Required. You can only delete your own saves."""
+    )
+    async def delete_save(
+        save_id: int,
+        current_user: User = Depends(get_current_user)
+    ):
+        """Delete a saved game (requires authentication)."""
+        try:
+            session_id = get_session_id_for_user(current_user.id)
+            engine = await get_game_engine_for_session(session_id)
+
+            from database import get_repository
+            repo = get_repository()
+            save = repo.load_game(save_id)
+
+            if save is None:
+                raise HTTPException(status_code=404, detail="Save not found")
+
+            expected_player_id = f"user_{current_user.id}"
+            if save.player_id != expected_player_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You don't have permission to delete this save"
+                )
+
+            success = engine.delete_save(save_id)
+            return {
+                "success": success,
+                "message": "Save deleted" if success else "Save not found"
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 # =============================================================================
-# Health & Status Endpoints
+# Health Endpoint
 # =============================================================================
-
-@app.get(
-    "/",
-    response_model=HealthResponse,
-    tags=["Health"],
-    summary="Root health check",
-    description="Quick health check endpoint returning API status."
-)
-async def root():
-    """Root endpoint - returns basic health status."""
-    return HealthResponse(
-        status="online",
-        llm_available=get_llm_engine().is_available(),
-        version="0.1.0"
-    )
-
-
-@app.get(
-    "/health",
-    response_model=HealthResponse,
-    tags=["Health"],
-    summary="Health check",
-    description="Detailed health check including LLM availability status."
-)
-async def health_check_root():
-    """Detailed health check at /health."""
-    return HealthResponse(
-        status="healthy",
-        llm_available=get_llm_engine().is_available(),
-        version="0.1.0"
-    )
-
 
 @app.get(
     "/api/health",
     response_model=HealthResponse,
     tags=["Health"],
     summary="API health check",
-    description="Detailed health check including LLM availability status."
+    description="Health check including LLM availability status."
 )
 async def health_check():
-    """Detailed health check at /api/health."""
+    """API health check."""
     return HealthResponse(
         status="healthy",
         llm_available=get_llm_engine().is_available(),
@@ -487,24 +491,18 @@ Start a new game session with the specified player name.
 
 This resets all game state and generates the starting room.
 Returns the initial game state including map and player stats.
-
-**Authentication:** Optional. If authenticated, game is linked to your account.
     """
 )
-@limiter.limit(RATE_LIMIT_LLM)
 async def new_game(
-    request: Request,
     game_request: NewGameRequest,
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Start a new game session."""
     try:
-        # Get session ID for this user
         session_id = get_session_id_for_user(
             current_user.id if current_user else None
         )
 
-        # Reset and get fresh engine for this session
         engine = await reset_game_engine_for_session(session_id)
         result = await engine.new_game(game_request.player_name)
 
@@ -529,7 +527,7 @@ async def new_game(
     description="Retrieve the complete current game state including player, room, inventory, and stats."
 )
 async def get_game_state(
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Get the current game state."""
     try:
@@ -541,7 +539,6 @@ async def get_game_state(
         # Ensure room exists at current position
         x, y, z = engine.world.current_position
         if not engine.world.room_exists(x, y, z):
-            # Generate a starting room if none exists
             biome = engine._determine_biome(z)
             exits = {"south": True} if (x, y, z) == (0, 0, 0) else engine._determine_exits(x, y, z, "north")
             await engine._generate_room(x, y, z, biome, exits)
@@ -559,14 +556,12 @@ async def get_game_state(
     summary="Save game",
     description="""Save the current game state to database.
 
-**Authentication:** Optional. If authenticated, saves are linked to your user account.
-Anonymous saves use 'anonymous' as player_id.
-
-Multiple saves per user are supported."""
+If authenticated, saves are linked to your user account.
+Anonymous saves use 'anonymous' as player_id."""
 )
 async def save_game(
     save_name: str = Query(default="quicksave", description="Name for the save slot"),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Save the current game state to database."""
     try:
@@ -575,13 +570,11 @@ async def save_game(
         )
         engine = await get_game_engine_for_session(session_id)
 
-        # Use user ID if authenticated, otherwise anonymous
         player_id = f"user_{current_user.id}" if current_user else "anonymous"
 
         save_id = engine.save_to_database(player_id, save_name)
 
-        # Update user stats if authenticated
-        if current_user:
+        if current_user and AUTH_ENABLED:
             auth_service = get_auth_service()
             auth_service.increment_games_played(current_user.id)
 
@@ -600,12 +593,11 @@ async def save_game(
     summary="Load game",
     description="""Load a previously saved game state from database.
 
-**Authentication:** Optional. If authenticated, loads from your user saves.
 If save_id is not specified, loads the most recent save."""
 )
 async def load_game(
     save_id: Optional[int] = Query(default=None, description="Specific save ID to load"),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Load saved game state from database."""
     try:
@@ -614,7 +606,6 @@ async def load_game(
         )
         engine = await get_game_engine_for_session(session_id)
 
-        # Use user ID if authenticated, otherwise anonymous
         player_id = f"user_{current_user.id}" if current_user else "anonymous"
 
         success = engine.load_from_database(save_id, player_id)
@@ -639,13 +630,10 @@ async def load_game(
     "/api/game/saves",
     tags=["Game Management"],
     summary="List saves",
-    description="""List all saved games for the current user.
-
-**Authentication:** Optional. If authenticated, lists your saves.
-Anonymous users see anonymous saves."""
+    description="List all saved games for the current user."
 )
 async def list_saves(
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """List all saves for the current user."""
     try:
@@ -654,7 +642,6 @@ async def list_saves(
         )
         engine = await get_game_engine_for_session(session_id)
 
-        # Use user ID if authenticated, otherwise anonymous
         player_id = f"user_{current_user.id}" if current_user else "anonymous"
 
         saves = engine.list_saves(player_id)
@@ -668,51 +655,8 @@ async def list_saves(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete(
-    "/api/game/saves/{save_id}",
-    tags=["Game Management"],
-    summary="Delete save",
-    description="""Delete a specific saved game by ID.
-
-**Authentication:** Required. You can only delete your own saves."""
-)
-async def delete_save(
-    save_id: int,
-    current_user: User = Depends(get_current_user)
-):
-    """Delete a saved game (requires authentication)."""
-    try:
-        session_id = get_session_id_for_user(current_user.id)
-        engine = await get_game_engine_for_session(session_id)
-
-        # Verify ownership by checking if save belongs to user
-        from database import get_repository
-        repo = get_repository()
-        save = repo.load_game(save_id)
-
-        if save is None:
-            raise HTTPException(status_code=404, detail="Save not found")
-
-        expected_player_id = f"user_{current_user.id}"
-        if save.player_id != expected_player_id:
-            raise HTTPException(
-                status_code=403,
-                detail="You don't have permission to delete this save"
-            )
-
-        success = engine.delete_save(save_id)
-        return {
-            "success": success,
-            "message": "Save deleted" if success else "Save not found"
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # =============================================================================
-# Movement Endpoints
+# Movement Endpoint
 # =============================================================================
 
 @app.post(
@@ -727,11 +671,9 @@ Returns success/failure, narrative description, and updated map.
 May trigger combat if entering a room with enemies.
     """
 )
-@limiter.limit(RATE_LIMIT_LLM)
 async def move(
-    request: Request,
     move_request: MoveRequest,
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Move the player in a direction."""
     valid_directions = ["north", "south", "east", "west", "up", "down"]
@@ -762,35 +704,6 @@ async def move(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Shorthand movement endpoints
-@app.post("/api/game/move/north", response_model=ActionResponse, tags=["Movement"], summary="Move north")
-@limiter.limit(RATE_LIMIT_LLM)
-async def move_north(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
-    """Move the player north."""
-    return await move(request, MoveRequest(direction="north"), current_user)
-
-
-@app.post("/api/game/move/south", response_model=ActionResponse, tags=["Movement"], summary="Move south")
-@limiter.limit(RATE_LIMIT_LLM)
-async def move_south(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
-    """Move the player south."""
-    return await move(request, MoveRequest(direction="south"), current_user)
-
-
-@app.post("/api/game/move/east", response_model=ActionResponse, tags=["Movement"], summary="Move east")
-@limiter.limit(RATE_LIMIT_LLM)
-async def move_east(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
-    """Move the player east."""
-    return await move(request, MoveRequest(direction="east"), current_user)
-
-
-@app.post("/api/game/move/west", response_model=ActionResponse, tags=["Movement"], summary="Move west")
-@limiter.limit(RATE_LIMIT_LLM)
-async def move_west(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
-    """Move the player west."""
-    return await move(request, MoveRequest(direction="west"), current_user)
-
-
 # =============================================================================
 # Combat Endpoints
 # =============================================================================
@@ -806,7 +719,7 @@ Attack the current enemy in combat. Only works when in an active combat encounte
 Returns combat results including damage dealt, enemy response, and victory/defeat status.
     """
 )
-async def attack(current_user: Optional[User] = Depends(get_current_user_optional)):
+async def attack(current_user: Optional[User] = Depends(get_optional_user)):
     """Attack the current enemy in combat."""
     try:
         session_id = get_session_id_for_user(
@@ -838,7 +751,7 @@ Success is based on player speed vs enemy speed. Failed flee attempts may result
 taking damage. Returns to exploration mode on success.
     """
 )
-async def flee(current_user: Optional[User] = Depends(get_current_user_optional)):
+async def flee(current_user: Optional[User] = Depends(get_optional_user)):
     """Attempt to flee from combat."""
     try:
         session_id = get_session_id_for_user(
@@ -871,7 +784,7 @@ async def flee(current_user: Optional[User] = Depends(get_current_user_optional)
 )
 async def take_item(
     request: TakeItemRequest,
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Pick up an item from the current room."""
     try:
@@ -905,7 +818,7 @@ Different item types produce different effects:
 )
 async def use_item(
     request: UseItemRequest,
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Use an item from inventory."""
     try:
@@ -934,7 +847,7 @@ async def use_item(
     description="Retrieve the player's current inventory items and gold count."
 )
 async def get_inventory(
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Get the player's inventory."""
     try:
@@ -951,7 +864,10 @@ async def get_inventory(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# =============================================================================
 # Interaction Endpoints
+# =============================================================================
+
 @app.post(
     "/api/game/talk",
     response_model=ActionResponse,
@@ -965,11 +881,9 @@ The LLM generates contextual dialogue responses based on:
 - Previous interactions
 - Player's message content"""
 )
-@limiter.limit(RATE_LIMIT_LLM)
 async def talk(
-    request: Request,
     talk_request: TalkRequest,
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Talk to an NPC in the current room."""
     try:
@@ -1001,7 +915,7 @@ async def talk(
 - Must be in a safe room (no enemies present)
 - Cannot rest during combat"""
 )
-async def rest(current_user: Optional[User] = Depends(get_current_user_optional)):
+async def rest(current_user: Optional[User] = Depends(get_optional_user)):
     """Rest to recover HP and mana (only in safe rooms)."""
     try:
         session_id = get_session_id_for_user(
@@ -1021,7 +935,7 @@ async def rest(current_user: Optional[User] = Depends(get_current_user_optional)
 
 
 # =============================================================================
-# Prefetch Endpoint (for performance optimization)
+# Prefetch Endpoint
 # =============================================================================
 
 @app.post(
@@ -1033,7 +947,7 @@ async def rest(current_user: Optional[User] = Depends(get_current_user_optional)
 This improves perceived performance by generating rooms in the background
 while the player is viewing the current room."""
 )
-async def prefetch(current_user: Optional[User] = Depends(get_current_user_optional)):
+async def prefetch(current_user: Optional[User] = Depends(get_optional_user)):
     """Prefetch adjacent rooms for faster navigation."""
     try:
         session_id = get_session_id_for_user(
@@ -1046,229 +960,134 @@ async def prefetch(current_user: Optional[User] = Depends(get_current_user_optio
         return {"success": False, "error": str(e)}
 
 
-# Generic action endpoint for flexibility
-@app.post(
-    "/api/game/action",
-    response_model=ActionResponse,
-    tags=["Game Management"],
-    summary="Generic action",
-    description="""Perform any game action through a unified endpoint.
-
-**Supported actions:**
-- `move` - Move in a direction (requires target: north/south/east/west)
-- `attack` - Attack the current enemy
-- `flee` - Attempt to flee from combat
-- `take` - Pick up an item (requires target: item_id)
-- `use` - Use an inventory item (requires target: item_id)
-- `talk` - Talk to an NPC (optional target: message)
-- `rest` - Rest to recover HP
-
-This endpoint provides flexibility for custom UI implementations."""
-)
-async def perform_action(
-    action: str,
-    target: Optional[str] = None,
-    current_user: Optional[User] = Depends(get_current_user_optional)
-):
-    """
-    Perform a generic game action.
-
-    Actions: move, attack, flee, take, use, talk, rest
-    """
-    session_id = get_session_id_for_user(
-        current_user.id if current_user else None
-    )
-    engine = await get_game_engine_for_session(session_id)
-
-    try:
-        if action == "move" and target:
-            result = await engine.move(target)
-        elif action == "attack":
-            result = await engine.attack()
-        elif action == "flee":
-            result = await engine.flee()
-        elif action == "take" and target:
-            result = await engine.take_item(target)
-        elif action == "use" and target:
-            result = await engine.use_item(target)
-        elif action == "talk":
-            result = await engine.talk(target or "")
-        elif action == "rest":
-            result = await engine.rest()
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unknown action: {action}"
-            )
-
-        return ActionResponse(
-            success=result.success,
-            message=result.message,
-            narrative=result.narrative,
-            map=result.map_update,
-            state=engine.get_game_state(),
-            combat=result.combat_data,
-            dialogue=result.dialogue_data
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # =============================================================================
-# WebSocket Endpoints
+# WebSocket Endpoints (only when WEBSOCKET_ENABLED=true)
 # =============================================================================
 
-@app.websocket("/ws/{player_id}")
-async def websocket_endpoint(websocket: WebSocket, player_id: str):
-    """
-    WebSocket endpoint for real-time game updates.
+if WEBSOCKET_ENABLED:
 
-    Connect with a unique player_id to receive live game state updates.
-    The connection will receive JSON messages with the following types:
-    - game_update: State changes from game actions
-    - error: Error notifications
-    - ping: Connection health checks (respond with pong)
+    @app.websocket("/ws/{player_id}")
+    async def websocket_endpoint(websocket: WebSocket, player_id: str):
+        """
+        WebSocket endpoint for real-time game updates.
 
-    Send JSON messages to perform actions:
-    - {"action": "move", "direction": "north"}
-    - {"action": "attack"}
-    - {"action": "flee"}
-    - {"action": "take", "item_id": "sword"}
-    - {"action": "use", "item_id": "potion"}
-    - {"action": "talk", "message": "Hello"}
-    - {"action": "rest"}
-    - {"type": "pong"} - Response to ping
-    """
-    ws_manager = get_websocket_manager()
+        Connect with a unique player_id to receive live game state updates.
+        """
+        ws_manager = get_websocket_manager()
 
-    # Accept connection
-    if not await ws_manager.connect(websocket, player_id):
-        return
+        if not await ws_manager.connect(websocket, player_id):
+            return
 
-    engine = get_game_engine()
+        engine = get_game_engine()
 
-    try:
-        # Send initial state
-        await ws_manager.send_to_player(player_id, {
-            "type": "connected",
-            "message": f"Connected as {player_id}",
-            "state": engine.get_game_state() if engine._player_state else None
-        })
+        try:
+            await ws_manager.send_to_player(player_id, {
+                "type": "connected",
+                "message": f"Connected as {player_id}",
+                "state": engine.get_game_state() if engine._player_state else None
+            })
 
-        while True:
-            # Wait for messages from client
-            data = await websocket.receive_json()
+            while True:
+                data = await websocket.receive_json()
 
-            # Handle pong responses
-            if data.get("type") == "pong":
-                await ws_manager.update_last_ping(player_id)
-                continue
-
-            action = data.get("action")
-            if not action:
-                await ws_manager.send_error(player_id, "Missing 'action' field")
-                continue
-
-            result = None
-
-            try:
-                # Process game actions
-                if action == "move":
-                    direction = data.get("direction")
-                    if not direction:
-                        await ws_manager.send_error(player_id, "Missing 'direction'")
-                        continue
-                    result = await engine.move(direction)
-
-                elif action == "attack":
-                    result = await engine.attack()
-
-                elif action == "flee":
-                    result = await engine.flee()
-
-                elif action == "take":
-                    item_id = data.get("item_id")
-                    if not item_id:
-                        await ws_manager.send_error(player_id, "Missing 'item_id'")
-                        continue
-                    result = await engine.take_item(item_id)
-
-                elif action == "use":
-                    item_id = data.get("item_id")
-                    if not item_id:
-                        await ws_manager.send_error(player_id, "Missing 'item_id'")
-                        continue
-                    result = await engine.use_item(item_id)
-
-                elif action == "talk":
-                    message = data.get("message", "")
-                    result = await engine.talk(message)
-
-                elif action == "rest":
-                    result = engine.rest()
-
-                elif action == "new_game":
-                    player_name = data.get("player_name", "Adventurer")
-                    reset_game_engine()
-                    engine = get_game_engine()
-                    result = await engine.new_game(player_name)
-
-                else:
-                    await ws_manager.send_error(player_id, f"Unknown action: {action}")
+                if data.get("type") == "pong":
+                    await ws_manager.update_last_ping(player_id)
                     continue
 
-                # Broadcast state update
-                if result:
-                    await ws_manager.broadcast_game_state(
-                        player_id=player_id,
-                        event_type=action,
-                        state=engine.get_game_state(),
-                        narrative=result.narrative,
-                        combat=result.combat_data,
-                        dialogue=result.dialogue_data
-                    )
+                action = data.get("action")
+                if not action:
+                    await ws_manager.send_error(player_id, "Missing 'action' field")
+                    continue
 
-            except Exception as e:
-                await ws_manager.send_error(player_id, str(e))
+                result = None
 
-    except WebSocketDisconnect:
-        await ws_manager.disconnect(player_id)
-    except Exception:
-        await ws_manager.disconnect(player_id)
+                try:
+                    if action == "move":
+                        direction = data.get("direction")
+                        if not direction:
+                            await ws_manager.send_error(player_id, "Missing 'direction'")
+                            continue
+                        result = await engine.move(direction)
 
+                    elif action == "attack":
+                        result = await engine.attack()
 
-@app.get(
-    "/api/ws/info",
-    tags=["WebSocket"],
-    summary="WebSocket connection info",
-    description="Get information about how to connect to the WebSocket endpoint."
-)
-async def websocket_info():
-    """Get WebSocket connection information."""
-    ws_manager = get_websocket_manager()
-    return {
-        "endpoint": "/ws/{player_id}",
-        "description": "Connect with a unique player_id for real-time updates",
-        "active_connections": ws_manager.connection_count,
-        "actions": [
-            {"action": "move", "params": {"direction": "north|south|east|west"}},
-            {"action": "attack", "params": {}},
-            {"action": "flee", "params": {}},
-            {"action": "take", "params": {"item_id": "string"}},
-            {"action": "use", "params": {"item_id": "string"}},
-            {"action": "talk", "params": {"message": "string (optional)"}},
-            {"action": "rest", "params": {}},
-            {"action": "new_game", "params": {"player_name": "string (optional)"}},
-        ],
-        "message_types": {
-            "connected": "Initial connection confirmation with current state",
-            "game_update": "State update after an action",
-            "error": "Error notification",
-            "ping": "Connection health check (respond with {type: 'pong'})",
+                    elif action == "flee":
+                        result = await engine.flee()
+
+                    elif action == "take":
+                        item_id = data.get("item_id")
+                        if not item_id:
+                            await ws_manager.send_error(player_id, "Missing 'item_id'")
+                            continue
+                        result = await engine.take_item(item_id)
+
+                    elif action == "use":
+                        item_id = data.get("item_id")
+                        if not item_id:
+                            await ws_manager.send_error(player_id, "Missing 'item_id'")
+                            continue
+                        result = await engine.use_item(item_id)
+
+                    elif action == "talk":
+                        message = data.get("message", "")
+                        result = await engine.talk(message)
+
+                    elif action == "rest":
+                        result = engine.rest()
+
+                    elif action == "new_game":
+                        player_name = data.get("player_name", "Adventurer")
+                        reset_game_engine()
+                        engine = get_game_engine()
+                        result = await engine.new_game(player_name)
+
+                    else:
+                        await ws_manager.send_error(player_id, f"Unknown action: {action}")
+                        continue
+
+                    if result:
+                        await ws_manager.broadcast_game_state(
+                            player_id=player_id,
+                            event_type=action,
+                            state=engine.get_game_state(),
+                            narrative=result.narrative,
+                            combat=result.combat_data,
+                            dialogue=result.dialogue_data
+                        )
+
+                except Exception as e:
+                    await ws_manager.send_error(player_id, str(e))
+
+        except WebSocketDisconnect:
+            await ws_manager.disconnect(player_id)
+        except Exception:
+            await ws_manager.disconnect(player_id)
+
+    @app.get(
+        "/api/ws/info",
+        tags=["WebSocket"],
+        summary="WebSocket connection info",
+        description="Get information about how to connect to the WebSocket endpoint."
+    )
+    async def websocket_info():
+        """Get WebSocket connection information."""
+        ws_manager = get_websocket_manager()
+        return {
+            "endpoint": "/ws/{player_id}",
+            "description": "Connect with a unique player_id for real-time updates",
+            "active_connections": ws_manager.connection_count,
+            "actions": [
+                {"action": "move", "params": {"direction": "north|south|east|west"}},
+                {"action": "attack", "params": {}},
+                {"action": "flee", "params": {}},
+                {"action": "take", "params": {"item_id": "string"}},
+                {"action": "use", "params": {"item_id": "string"}},
+                {"action": "talk", "params": {"message": "string (optional)"}},
+                {"action": "rest", "params": {}},
+                {"action": "new_game", "params": {"player_name": "string (optional)"}},
+            ],
         }
-    }
 
 
 # Run with: uvicorn main:app --reload
