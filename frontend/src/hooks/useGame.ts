@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { api } from '../services/api';
-import { getAudioEngine } from '../services/audioEngine';
-import type { GameState, ActionResponse, Direction, DialogueData, AudioBatch } from '../types/game';
+import type { GameState, ActionResponse, Direction, DialogueData } from '../types/game';
 
 interface UseGameReturn {
   // State
@@ -34,7 +33,6 @@ export function useGame(): UseGameReturn {
   const [error, setError] = useState<string | null>(null);
   const [narrative, setNarrative] = useState<string>('');
   const [dialogueData, setDialogueData] = useState<DialogueData | null>(null);
-  const audioEngine = useRef(getAudioEngine());
   const prefetchRef = useRef<AbortController | null>(null);
 
   // Prefetch adjacent rooms in background (silent, doesn't affect UI)
@@ -49,17 +47,6 @@ export function useGame(): UseGameReturn {
     api.prefetch().catch(() => {
       // Silently ignore prefetch errors
     });
-  }, []);
-
-  // Play audio from response
-  const playAudio = useCallback(async (audio: AudioBatch | undefined) => {
-    if (!audio) return;
-
-    try {
-      await audioEngine.current.playBatch(audio);
-    } catch (err) {
-      console.warn('Audio playback failed:', err);
-    }
   }, []);
 
   // Helper to handle API responses
@@ -77,16 +64,11 @@ export function useGame(): UseGameReturn {
       setError(response.message);
     }
 
-    // Play audio if present
-    if (response.audio) {
-      playAudio(response.audio);
-    }
-
     // Prefetch adjacent rooms in background if requested
     if (shouldPrefetch && response.success) {
       prefetchRooms();
     }
-  }, [playAudio, prefetchRooms]);
+  }, [prefetchRooms]);
 
   // Wrap API calls with loading state
   const withLoading = useCallback(

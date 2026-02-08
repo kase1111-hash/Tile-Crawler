@@ -138,7 +138,6 @@ class WebSocketManager:
         event_type: str,
         state: Dict[str, Any],
         narrative: Optional[str] = None,
-        audio: Optional[Dict[str, Any]] = None,
         combat: Optional[Dict[str, Any]] = None,
         dialogue: Optional[Dict[str, Any]] = None
     ) -> bool:
@@ -150,7 +149,6 @@ class WebSocketManager:
             event_type: Type of game event (move, attack, item, etc.)
             state: Current game state
             narrative: Optional narrative text
-            audio: Optional audio intent data
             combat: Optional combat data
             dialogue: Optional dialogue data
 
@@ -164,7 +162,6 @@ class WebSocketManager:
             "data": {
                 "state": state,
                 "narrative": narrative,
-                "audio": audio,
                 "combat": combat,
                 "dialogue": dialogue
             }
