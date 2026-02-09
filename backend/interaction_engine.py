@@ -235,8 +235,22 @@ class InteractionEngine:
         npc_name = npc_data.get("name", "Stranger")
         personality = npc_data.get("personality", "mysterious")
 
-        # Generate dialogue
+        # Track NPC relationship
+        x, y, z = self.world.current_position
+        topic = player_input[:50] if player_input else ""
+        self.narrative.record_npc_encounter(
+            npc_id=npc_id,
+            npc_name=npc_name,
+            location=(x, y, z),
+            topic=topic
+        )
+
+        # Build enriched narrative context with NPC relationship
         narrative_context = self.narrative.get_context_for_llm()
+        npc_context = self.narrative.get_npc_context(npc_id)
+        if npc_context:
+            narrative_context["npc_relationship"] = npc_context
+
         response = await self.llm.generate_dialogue(
             npc_id=npc_id,
             npc_name=npc_name,
@@ -256,7 +270,6 @@ class InteractionEngine:
             self.dialogue_history = self.dialogue_history[-10:]
 
         # Record event
-        x, y, z = self.world.current_position
         self.narrative.add_dialogue_event(
             npc_name=npc_name,
             summary=response.speech[:100],

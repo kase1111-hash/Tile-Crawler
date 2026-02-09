@@ -223,12 +223,31 @@ class GameEngine:
             room_description=new_room.description if new_room else ""
         )
 
+        # Track features for theme detection
+        if new_room and new_room.features:
+            self.narrative.track_features(new_room.features)
+
         # Check for enemies
         combat_msg = ""
-        if new_room and new_room.enemies:
+        has_combat = bool(new_room and new_room.enemies)
+        if has_combat:
             enemy = new_room.enemies[0]
             combat_msg = f"\n\nA {enemy.get('name', 'creature')} blocks your path!"
             self.combat_engine.start_combat(0, enemy)
+
+        # Track danger escalation
+        self.narrative.record_room_entered(has_combat)
+
+        # Trigger story summary update every 10 rooms
+        if self.narrative.should_update_summary():
+            recent_text = self.narrative.get_recent_events_text(10)
+            if recent_text:
+                new_summary = await self.llm.summarize_story(
+                    events=recent_text.split("\n"),
+                    current_summary=self.narrative.story_summary
+                )
+                self.narrative.update_summary(new_summary)
+                self.narrative.mark_summary_updated()
 
         self._save_all()
 
