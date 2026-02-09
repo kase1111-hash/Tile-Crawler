@@ -1,8 +1,17 @@
 """Tests for WebSocket connection manager."""
 
+import os
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+
+from dependencies import WEBSOCKET_ENABLED
+
+# Skip entire module if WebSocket feature is disabled
+pytestmark = pytest.mark.skipif(
+    not WEBSOCKET_ENABLED,
+    reason="WEBSOCKET_ENABLED is false; skipping WebSocket tests"
+)
 
 from websocket_manager import (
     WebSocketManager,

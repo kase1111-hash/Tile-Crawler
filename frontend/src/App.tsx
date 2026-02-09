@@ -4,13 +4,29 @@ import { useCallback, useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { GameMenu } from './components';
 
+// Biome-specific tile sets for the 3D view
+const BIOME_TILES: Record<string, { wall: string; floor: string; ceil: string; alt: string }> = {
+  dungeon: { wall: '▓', floor: '░', ceil: '·', alt: '░' },
+  cave:    { wall: '█', floor: '▒', ceil: '·', alt: '≈' },
+  crypt:   { wall: '▓', floor: '░', ceil: '†', alt: '░' },
+  ruins:   { wall: '▓', floor: '░', ceil: '·', alt: '♣' },
+  temple:  { wall: '▓', floor: '░', ceil: '·', alt: '╬' },
+  volcano: { wall: '▓', floor: '▒', ceil: '~', alt: '≈' },
+  void:    { wall: '▓', floor: '·', ceil: ' ', alt: '░' },
+};
+
 // Generate pseudo-3D dungeon view
 function render3DView(
   forward: boolean,
   left: boolean,
   right: boolean,
   width: number,
-  height: number
+  height: number,
+  biome: string = 'dungeon',
+  hasEnemies: boolean = false,
+  hasNPCs: boolean = false,
+  hasItems: boolean = false,
+  hasTorch: boolean = false,
 ): string[] {
   const lines: string[] = [];
   const midX = Math.floor(width / 2);
@@ -19,12 +35,16 @@ function render3DView(
   const horizonY = Math.floor(height * 0.4);
   const floorStart = horizonY + 1;
 
-  // Characters
-  const WALL = '▓';
-  const FLOOR = '░';
-  const CEIL = '·';
+  // Biome-aware tile characters
+  const tiles = BIOME_TILES[biome] || BIOME_TILES.dungeon;
+  const WALL = tiles.wall;
+  const FLOOR = tiles.floor;
+  const CEIL = tiles.ceil;
   const DARK = ' ';
   const PASSAGE = '▒';
+
+  // Torch effect: expand visible area when player has a torch
+  const visibilityBonus = hasTorch ? 0.3 : 0;
 
   for (let y = 0; y < height; y++) {
     let line = '';
@@ -64,16 +84,14 @@ function render3DView(
         // Ceiling
         else {
           if (forward) {
-            // Show depth - passage ahead
             const centerDist = Math.abs(x - midX);
-            const depthZone = Math.floor(horizonY * 0.5);
+            const depthZone = Math.floor(horizonY * (0.5 - visibilityBonus));
             if (y > depthZone && centerDist < wallWidth * 0.5) {
               line += DARK;
             } else {
               line += CEIL;
             }
           } else {
-            // Dead end - wall ahead
             if (y > horizonY * 0.6) {
               line += WALL;
             } else {
@@ -87,9 +105,30 @@ function render3DView(
         if (x < leftWallInner || x > rightWallInner) {
           line += WALL;
         } else if (forward) {
-          line += DARK;
+          // Render entities at the center of the horizon (distance view)
+          if (hasEnemies && Math.abs(x - midX) <= 2) {
+            line += x === midX ? '&' : DARK;
+          } else if (hasNPCs && Math.abs(x - midX) <= 1) {
+            line += x === midX ? '☺' : DARK;
+          } else {
+            line += DARK;
+          }
         } else {
-          line += WALL;
+          // Dead end - render entities against the back wall
+          if (hasEnemies && Math.abs(x - midX) <= 3) {
+            // Large enemy silhouette against back wall
+            const d = Math.abs(x - midX);
+            if (d === 0) line += '&';
+            else if (d <= 1) line += '░';
+            else if (d <= 2) line += WALL;
+            else line += WALL;
+          } else if (hasNPCs && Math.abs(x - midX) <= 2) {
+            const d = Math.abs(x - midX);
+            if (d === 0) line += '☺';
+            else line += WALL;
+          } else {
+            line += WALL;
+          }
         }
       }
       // Floor zone (bottom portion)
@@ -114,22 +153,30 @@ function render3DView(
         else {
           if (forward) {
             const centerDist = Math.abs(x - midX);
-            const nearFloor = y > height - (height - horizonY) * 0.4;
+            const nearFloor = y > height - (height - horizonY) * (0.4 + visibilityBonus);
             if (nearFloor) {
-              // Close floor tiles
-              const tileX = Math.floor(x / 4) % 2;
-              const tileY = Math.floor((y - floorStart) / 2) % 2;
-              line += (tileX === tileY) ? FLOOR : '·';
-            } else if (centerDist < wallWidth * 0.5) {
+              // Item indicator on the ground (near player)
+              if (hasItems && y === height - 2 && Math.abs(x - midX) <= 2) {
+                line += x === midX ? '$' : FLOOR;
+              } else {
+                const tileX = Math.floor(x / 4) % 2;
+                const tileY = Math.floor((y - floorStart) / 2) % 2;
+                line += (tileX === tileY) ? FLOOR : '·';
+              }
+            } else if (centerDist < wallWidth * (0.5 - visibilityBonus)) {
               line += DARK;
             } else {
               line += FLOOR;
             }
           } else {
-            // Dead end floor
-            const tileX = Math.floor(x / 4) % 2;
-            const tileY = Math.floor((y - floorStart) / 2) % 2;
-            line += (tileX === tileY) ? FLOOR : '·';
+            // Item indicator in dead end
+            if (hasItems && y === height - 2 && Math.abs(x - midX) <= 1) {
+              line += x === midX ? '$' : FLOOR;
+            } else {
+              const tileX = Math.floor(x / 4) % 2;
+              const tileY = Math.floor((y - floorStart) / 2) % 2;
+              line += (tileX === tileY) ? FLOOR : '·';
+            }
           }
         }
       }
@@ -295,10 +342,19 @@ function App() {
   const canGoRight = exits[rightDir[facing]];
   const canGoBack = exits[backDir[facing]];
 
-  // Render the 3D view
+  // Render the 3D view with biome atmosphere and entity indicators
   const viewWidth = 80;
   const viewHeight = 24;
-  const view3D = render3DView(canGoForward, canGoLeft, canGoRight, viewWidth, viewHeight);
+  const roomHasEnemies = gameState.room.enemies.length > 0 || inCombat;
+  const roomHasNPCs = gameState.room.npcs.length > 0;
+  const roomHasItems = gameState.room.items.length > 0;
+  const hasTorchBuff = gameState.player.status_effects?.some(
+    (e: { id: string }) => e.id === 'light_source'
+  ) ?? false;
+  const view3D = render3DView(
+    canGoForward, canGoLeft, canGoRight, viewWidth, viewHeight,
+    gameState.room.biome, roomHasEnemies, roomHasNPCs, roomHasItems, hasTorchBuff
+  );
 
   const compassFull = { north: 'NORTH', south: 'SOUTH', east: 'EAST', west: 'WEST' };
   const hpBar = '█'.repeat(Math.floor(hpPct / 10)) + '░'.repeat(10 - Math.floor(hpPct / 10));

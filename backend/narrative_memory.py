@@ -23,6 +23,16 @@ class NarrativeEvent(BaseModel):
     importance: int = 1  # 1-5 scale, higher = more important to remember
 
 
+class NPCRelationship(BaseModel):
+    """Tracks the player's relationship with an NPC across encounters."""
+    npc_id: str
+    npc_name: str = ""
+    encounters: int = 0
+    disposition: str = "neutral"  # friendly, hostile, cautious, grateful
+    key_topics: list[str] = Field(default_factory=list)
+    last_seen: tuple[int, int, int] = (0, 0, 0)
+
+
 class NarrativeMemory:
     """
     Manages the narrative memory system for story continuity.
@@ -39,6 +49,14 @@ class NarrativeMemory:
         self.current_tone: str = "mysterious"
         self.active_threads: list[str] = []  # Ongoing story threads
         self.discovered_lore: list[str] = []
+
+        # Phase 5.3 enrichments
+        self.theme_counts: dict[str, int] = {}  # feature -> occurrence count
+        self.npc_relationships: dict[str, NPCRelationship] = {}
+        self.consecutive_combats: int = 0
+        self.rooms_since_combat: int = 0
+        self.rooms_since_summary: int = 0
+
         self._load()
 
     def _load(self) -> None:
@@ -54,6 +72,13 @@ class NarrativeMemory:
                     self.current_tone = data.get("current_tone", "mysterious")
                     self.active_threads = data.get("active_threads", [])
                     self.discovered_lore = data.get("discovered_lore", [])
+                    self.theme_counts = data.get("theme_counts", {})
+                    self.npc_relationships = {
+                        k: NPCRelationship(**v) for k, v in data.get("npc_relationships", {}).items()
+                    }
+                    self.consecutive_combats = data.get("consecutive_combats", 0)
+                    self.rooms_since_combat = data.get("rooms_since_combat", 0)
+                    self.rooms_since_summary = data.get("rooms_since_summary", 0)
             except (json.JSONDecodeError, KeyError) as e:
                 print(f"Warning: Could not load narrative memory: {e}")
                 self._init_default()
@@ -67,6 +92,11 @@ class NarrativeMemory:
         self.current_tone = "mysterious"
         self.active_threads = []
         self.discovered_lore = []
+        self.theme_counts = {}
+        self.npc_relationships = {}
+        self.consecutive_combats = 0
+        self.rooms_since_combat = 0
+        self.rooms_since_summary = 0
 
     def save(self) -> None:
         """Save narrative memory to disk."""
@@ -75,7 +105,12 @@ class NarrativeMemory:
             "story_summary": self.story_summary,
             "current_tone": self.current_tone,
             "active_threads": self.active_threads,
-            "discovered_lore": self.discovered_lore
+            "discovered_lore": self.discovered_lore,
+            "theme_counts": self.theme_counts,
+            "npc_relationships": {k: v.model_dump() for k, v in self.npc_relationships.items()},
+            "consecutive_combats": self.consecutive_combats,
+            "rooms_since_combat": self.rooms_since_combat,
+            "rooms_since_summary": self.rooms_since_summary,
         }
         with open(self.save_path, 'w') as f:
             json.dump(data, f, indent=2)
@@ -230,18 +265,125 @@ class NarrativeMemory:
         """Update the overall story summary."""
         self.story_summary = summary
 
+    # ---- Theme tracking ----
+
+    def track_features(self, features: list[str]) -> None:
+        """Track room feature themes for pattern detection."""
+        for feature in features:
+            self.theme_counts[feature] = self.theme_counts.get(feature, 0) + 1
+
+    def get_dominant_themes(self, threshold: int = 3) -> list[str]:
+        """Get themes that have appeared at least `threshold` times."""
+        return [
+            theme for theme, count in self.theme_counts.items()
+            if count >= threshold
+        ]
+
+    # ---- NPC relationship tracking ----
+
+    def record_npc_encounter(
+        self,
+        npc_id: str,
+        npc_name: str,
+        location: tuple[int, int, int],
+        topic: str = ""
+    ) -> NPCRelationship:
+        """Record an encounter with an NPC, building relationship memory."""
+        if npc_id not in self.npc_relationships:
+            self.npc_relationships[npc_id] = NPCRelationship(
+                npc_id=npc_id, npc_name=npc_name
+            )
+
+        rel = self.npc_relationships[npc_id]
+        rel.encounters += 1
+        rel.last_seen = location
+
+        if topic and topic not in rel.key_topics:
+            rel.key_topics.append(topic)
+            # Keep topics manageable
+            if len(rel.key_topics) > 10:
+                rel.key_topics = rel.key_topics[-10:]
+
+        # Auto-adjust disposition based on encounters
+        if rel.encounters >= 5 and rel.disposition == "neutral":
+            rel.disposition = "friendly"
+
+        return rel
+
+    def get_npc_context(self, npc_id: str) -> Optional[dict]:
+        """Get relationship context for an NPC, for use in dialogue prompts."""
+        rel = self.npc_relationships.get(npc_id)
+        if not rel:
+            return None
+        return {
+            "encounters": rel.encounters,
+            "disposition": rel.disposition,
+            "key_topics": rel.key_topics[-5:],
+            "last_seen": list(rel.last_seen),
+        }
+
+    # ---- Danger escalation tracking ----
+
+    def record_room_entered(self, had_combat: bool) -> None:
+        """Track combat frequency for danger escalation."""
+        self.rooms_since_summary += 1
+
+        if had_combat:
+            self.consecutive_combats += 1
+            self.rooms_since_combat = 0
+        else:
+            self.rooms_since_combat += 1
+            if self.rooms_since_combat >= 2:
+                self.consecutive_combats = 0
+
+    def get_danger_context(self) -> str:
+        """Get a danger-level hint for the LLM based on recent combat patterns."""
+        if self.consecutive_combats >= 3:
+            return "The player has been fighting constantly. Tension is very high — consider offering respite or escalating to a climax."
+        elif self.rooms_since_combat >= 5:
+            return "It has been eerily quiet. Something may be watching, waiting. Build suspense."
+        elif self.rooms_since_combat >= 3:
+            return "The calm feels unnatural. Foreshadow danger."
+        return ""
+
+    # ---- Story arc summary trigger ----
+
+    def should_update_summary(self, interval: int = 10) -> bool:
+        """Check if enough rooms have passed to warrant a story summary update."""
+        return self.rooms_since_summary >= interval
+
+    def mark_summary_updated(self) -> None:
+        """Reset the rooms-since-summary counter after an update."""
+        self.rooms_since_summary = 0
+
+    # ---- LLM context ----
+
     def get_context_for_llm(self) -> dict:
         """Get narrative context formatted for LLM prompts."""
         recent_events = [
             f"- {e.description}" for e in self.events[-5:]
         ]
-        return {
+
+        # Build enriched context
+        context = {
             "story_summary": self.story_summary,
             "recent_events": recent_events,
             "current_tone": self.current_tone,
             "active_threads": self.active_threads,
-            "discovered_lore": self.discovered_lore[-5:] if self.discovered_lore else []
+            "discovered_lore": self.discovered_lore[-5:] if self.discovered_lore else [],
         }
+
+        # Add dominant themes if any
+        themes = self.get_dominant_themes()
+        if themes:
+            context["recurring_themes"] = themes
+
+        # Add danger context if relevant
+        danger = self.get_danger_context()
+        if danger:
+            context["danger_context"] = danger
+
+        return context
 
     def get_recent_events_text(self, count: int = 5) -> str:
         """Get recent events as formatted text."""

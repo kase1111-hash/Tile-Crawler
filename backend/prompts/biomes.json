@@ -1,0 +1,100 @@
+{
+  "dungeon": {
+    "atmosphere": "cold stone, dripping water, iron-scented air, flickering torchlight",
+    "tile_vocabulary": {
+      "wall": "▓",
+      "floor": "░",
+      "accent_1": "+",
+      "accent_2": "■",
+      "notes": "Use + for closed doors and ■ for chests. Rooms should feel constructed — straight walls, regular corridors."
+    },
+    "enemy_archetypes": ["giant_rat", "cave_spider", "skeleton_warrior", "goblin"],
+    "item_themes": ["rusted weapons", "old potions", "torch", "lockpick", "gold coins"],
+    "architectural_vocabulary": ["flagstone floors", "iron sconces", "portcullis", "arrow slits", "murder holes"],
+    "example_description": "Rough-hewn flagstones stretch beneath your boots. Water seeps from cracks in the ceiling, pooling in shallow depressions. A rusted sconce holds the remains of a torch."
+  },
+  "cave": {
+    "atmosphere": "damp darkness, echoing drips, phosphorescent moss, uneven ground",
+    "tile_vocabulary": {
+      "wall": "▓",
+      "floor": "░",
+      "accent_1": "≈",
+      "accent_2": "·",
+      "notes": "Use ≈ for water pools and · for gravel. Walls should be irregular — natural formations, not straight lines."
+    },
+    "enemy_archetypes": ["giant_rat", "cave_spider", "goblin"],
+    "item_themes": ["mushrooms", "crystals", "spider silk", "mineral deposits"],
+    "architectural_vocabulary": ["stalactites", "stalagmites", "underground streams", "narrow squeezes", "crystal veins"],
+    "example_description": "The cavern opens into a wide grotto. Phosphorescent moss clings to damp walls, casting everything in a faint blue-green glow. Water drips steadily from overhead."
+  },
+  "crypt": {
+    "atmosphere": "musty air, cold silence, dust motes, faint dread",
+    "tile_vocabulary": {
+      "wall": "▓",
+      "floor": "░",
+      "accent_1": "╬",
+      "accent_2": "+",
+      "notes": "Use ╬ for altars/tombstones and + for sealed doors. Rooms should feel orderly but decayed — burial chambers with purpose."
+    },
+    "enemy_archetypes": ["skeleton_warrior", "zombie", "wraith"],
+    "item_themes": ["burial offerings", "ancient scrolls", "bone fragments", "ghostly essence"],
+    "architectural_vocabulary": ["sarcophagi", "burial niches", "funerary urns", "inscribed lintels", "sealed vaults"],
+    "example_description": "Stone sarcophagi stand in ordered rows, their lids slightly askew. The air tastes of dust and something older. Names carved into the walls have worn smooth with time."
+  },
+  "ruins": {
+    "atmosphere": "crumbling grandeur, open sky above, overgrown stone, wind through gaps",
+    "tile_vocabulary": {
+      "wall": "▓",
+      "floor": "░",
+      "accent_1": "♣",
+      "accent_2": "·",
+      "notes": "Use ♣ for overgrown vegetation and · for rubble. Walls should have gaps — some sections collapsed, letting in light."
+    },
+    "enemy_archetypes": ["goblin", "cave_spider", "stone_golem"],
+    "item_themes": ["ancient coins", "broken artifacts", "carved stones", "map fragments"],
+    "architectural_vocabulary": ["broken columns", "fallen arches", "mosaic floors", "vine-choked doorways", "cracked statues"],
+    "example_description": "Broken columns jut from the rubble like fractured bones. Vines have claimed the eastern wall entirely. Through gaps in the ceiling, pale light filters down."
+  },
+  "temple": {
+    "atmosphere": "oppressive silence, dark power, flickering candles, incense residue",
+    "tile_vocabulary": {
+      "wall": "▓",
+      "floor": "░",
+      "accent_1": "╬",
+      "accent_2": "^",
+      "notes": "Use ╬ for altars/ritual circles and ^ for traps. Rooms should feel purposeful and ominous — worship spaces corrupted by dark forces."
+    },
+    "enemy_archetypes": ["cultist", "skeleton_warrior", "demon"],
+    "item_themes": ["ritual daggers", "dark scrolls", "cursed idols", "prayer beads", "incense"],
+    "architectural_vocabulary": ["obsidian altar", "ritual circle", "prayer alcoves", "dark murals", "bloodstained steps"],
+    "example_description": "An unholy hush fills this profane hall. Dark murals depict rituals best left forgotten. The floor before the altar is stained a deep, permanent crimson."
+  },
+  "volcano": {
+    "atmosphere": "searing heat, orange glow, sulfurous fumes, trembling ground",
+    "tile_vocabulary": {
+      "wall": "▓",
+      "floor": "░",
+      "accent_1": "≈",
+      "accent_2": "~",
+      "notes": "Use ≈ for lava flows (impassable) and ~ for heat shimmer on floor tiles. The environment is hostile — everything radiates heat."
+    },
+    "enemy_archetypes": ["fire_elemental", "demon"],
+    "item_themes": ["obsidian shards", "fire-resistant gear", "magma crystals", "dragon scales"],
+    "architectural_vocabulary": ["lava channels", "obsidian pillars", "volcanic vents", "cooling rock bridges", "magma chambers"],
+    "example_description": "Rivers of molten stone cast everything in an angry orange glow. The air shimmers with heat. Obsidian formations jut from the walls like black teeth."
+  },
+  "void": {
+    "atmosphere": "impossible geometry, whispering darkness, reality distortion, cosmic dread",
+    "tile_vocabulary": {
+      "wall": "▓",
+      "floor": "░",
+      "accent_1": " ",
+      "accent_2": "·",
+      "notes": "Use spaces for reality gaps (impassable void) and · for unstable ground. The geometry should feel wrong — non-Euclidean, impossible."
+    },
+    "enemy_archetypes": ["eldritch_horror", "wraith"],
+    "item_themes": ["void essence", "reality anchors", "impossible objects", "madness-touched relics"],
+    "architectural_vocabulary": ["reality fractures", "floating platforms", "impossible stairs", "null spaces", "crystallized time"],
+    "example_description": "The geometry of this place defies logic. Walls bend where they shouldn't. The darkness between the platforms isn't empty — it watches."
+  }
+}
