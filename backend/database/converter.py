@@ -242,7 +242,7 @@ class StateConverter:
         if data is None:
             return None
 
-        from game_engine import CombatState
+        from combat_engine import CombatState
 
         return CombatState(
             in_combat=data.in_combat,
