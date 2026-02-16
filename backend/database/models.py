@@ -73,14 +73,14 @@ class InventoryItem(BaseModel):
 
 
 class EquipmentSlots(BaseModel):
-    """Equipped item slots."""
+    """Equipped item slots — must match inventory_state.EquipmentSlots fields."""
+    head: Optional[str] = None
+    body: Optional[str] = None
     main_hand: Optional[str] = None
     off_hand: Optional[str] = None
-    head: Optional[str] = None
-    chest: Optional[str] = None
-    legs: Optional[str] = None
-    feet: Optional[str] = None
-    accessory: Optional[str] = None
+    ring_1: Optional[str] = None
+    ring_2: Optional[str] = None
+    amulet: Optional[str] = None
 
 
 class InventoryData(BaseModel):

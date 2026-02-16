@@ -153,13 +153,13 @@ class StateConverter:
         # Save equipment slot assignments
         equip = inventory_state.equipment
         equipment = EquipmentSlots(
+            head=equip.head,
+            body=equip.body,
             main_hand=equip.main_hand,
             off_hand=equip.off_hand,
-            head=equip.head,
-            chest=equip.chest,
-            legs=equip.legs,
-            feet=equip.feet,
-            accessory=equip.accessory,
+            ring_1=equip.ring_1,
+            ring_2=equip.ring_2,
+            amulet=equip.amulet,
         )
 
         return InventoryData(
@@ -195,13 +195,13 @@ class StateConverter:
         # Restore equipment slot assignments
         if hasattr(data, 'equipment') and data.equipment:
             inventory_state.equipment = InvEquip(
+                head=data.equipment.head,
+                body=data.equipment.body,
                 main_hand=data.equipment.main_hand,
                 off_hand=data.equipment.off_hand,
-                head=data.equipment.head,
-                chest=data.equipment.chest,
-                legs=data.equipment.legs,
-                feet=data.equipment.feet,
-                accessory=data.equipment.accessory,
+                ring_1=data.equipment.ring_1,
+                ring_2=data.equipment.ring_2,
+                amulet=data.equipment.amulet,
             )
 
     @staticmethod

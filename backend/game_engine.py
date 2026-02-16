@@ -120,18 +120,20 @@ class GameEngine:
 
     async def new_game(self, player_name: str = "Adventurer") -> ActionResult:
         """Start a new game."""
-        # Reset all states
-        self.world = reset_world_state()
-        self.narrative = reset_narrative_memory()
-        self.inventory = reset_inventory_state()
-        self.player = reset_player_state()
+        # Reset state in-place so session-specific objects are preserved
+        # (calling global reset_*() functions would replace session state
+        # with shared singletons, breaking multi-user isolation)
+        self.world.reset()
+        self.narrative.reset()
+        self.inventory.reset()
+        self.player.reset()
 
         self.player.name = player_name
         self.combat = None
         self.current_dialogue_npc = None
         self.dialogue_history = []
 
-        # Re-bind sub-engines to fresh state objects
+        # Re-bind sub-engines (references unchanged but keeps things consistent)
         self._rebind_sub_engines()
 
         # Generate starting room
