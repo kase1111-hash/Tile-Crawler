@@ -8,7 +8,8 @@ from typing import Optional
 
 from .models import (
     GameSave, PlayerData, WorldData, InventoryData, NarrativeData,
-    CombatData, RoomRecord, InventoryItem, NarrativeEvent
+    CombatData, RoomRecord, InventoryItem, NarrativeEvent, EquipmentSlots,
+    NPCRelationshipData
 )
 
 
@@ -143,19 +144,35 @@ class StateConverter:
                 category=item.category,
                 quantity=item.quantity,
                 equipped=item.equipped,
-                stats={},  # InventoryItem doesn't have stats field
+                stackable=item.stackable,
+                max_stack=item.max_stack,
+                slot=item.slot,
+                stats=item.stats if hasattr(item, 'stats') else {},
             ))
+
+        # Save equipment slot assignments
+        equip = inventory_state.equipment
+        equipment = EquipmentSlots(
+            head=equip.head,
+            body=equip.body,
+            main_hand=equip.main_hand,
+            off_hand=equip.off_hand,
+            ring_1=equip.ring_1,
+            ring_2=equip.ring_2,
+            amulet=equip.amulet,
+        )
 
         return InventoryData(
             items=items,
             gold=inventory_state.gold,
             max_slots=inventory_state.max_slots,
+            equipment=equipment,
         )
 
     @staticmethod
     def data_to_inventory(data: InventoryData, inventory_state) -> None:
         """Load InventoryData into InventoryState."""
-        from inventory_state import InventoryItem as InvItem
+        from inventory_state import InventoryItem as InvItem, EquipmentSlots as InvEquip
 
         inventory_state.items = {}
         inventory_state.gold = data.gold
@@ -169,6 +186,22 @@ class StateConverter:
                 category=item.category,
                 quantity=item.quantity,
                 equipped=item.equipped,
+                stackable=getattr(item, 'stackable', True),
+                max_stack=getattr(item, 'max_stack', 99),
+                slot=getattr(item, 'slot', None),
+                stats=getattr(item, 'stats', {}),
+            )
+
+        # Restore equipment slot assignments
+        if hasattr(data, 'equipment') and data.equipment:
+            inventory_state.equipment = InvEquip(
+                head=data.equipment.head,
+                body=data.equipment.body,
+                main_hand=data.equipment.main_hand,
+                off_hand=data.equipment.off_hand,
+                ring_1=data.equipment.ring_1,
+                ring_2=data.equipment.ring_2,
+                amulet=data.equipment.amulet,
             )
 
     @staticmethod
@@ -186,6 +219,18 @@ class StateConverter:
                 importance=event.importance,
             ))
 
+        # Convert NPC relationships
+        npc_rels = {}
+        for npc_id, rel in narrative_memory.npc_relationships.items():
+            npc_rels[npc_id] = NPCRelationshipData(
+                npc_id=rel.npc_id,
+                npc_name=rel.npc_name,
+                encounters=rel.encounters,
+                disposition=rel.disposition,
+                key_topics=rel.key_topics,
+                last_seen=rel.last_seen,
+            )
+
         return NarrativeData(
             events=events,
             story_summary=narrative_memory.story_summary,
@@ -193,6 +238,11 @@ class StateConverter:
             active_threads=narrative_memory.active_threads,
             discovered_lore=narrative_memory.discovered_lore,
             max_events=narrative_memory.max_events,
+            theme_counts=narrative_memory.theme_counts,
+            npc_relationships=npc_rels,
+            consecutive_combats=narrative_memory.consecutive_combats,
+            rooms_since_combat=narrative_memory.rooms_since_combat,
+            rooms_since_summary=narrative_memory.rooms_since_summary,
         )
 
     @staticmethod
@@ -217,6 +267,25 @@ class StateConverter:
         narrative_memory.active_threads = data.active_threads
         narrative_memory.discovered_lore = data.discovered_lore
         narrative_memory.max_events = data.max_events
+
+        # Restore Phase 5.3 enrichments
+        narrative_memory.theme_counts = getattr(data, 'theme_counts', {}) or {}
+        narrative_memory.consecutive_combats = getattr(data, 'consecutive_combats', 0)
+        narrative_memory.rooms_since_combat = getattr(data, 'rooms_since_combat', 0)
+        narrative_memory.rooms_since_summary = getattr(data, 'rooms_since_summary', 0)
+
+        # Restore NPC relationships
+        from narrative_memory import NPCRelationship
+        narrative_memory.npc_relationships = {}
+        for npc_id, rel_data in (getattr(data, 'npc_relationships', {}) or {}).items():
+            narrative_memory.npc_relationships[npc_id] = NPCRelationship(
+                npc_id=rel_data.npc_id,
+                npc_name=rel_data.npc_name,
+                encounters=rel_data.encounters,
+                disposition=rel_data.disposition,
+                key_topics=rel_data.key_topics,
+                last_seen=rel_data.last_seen,
+            )
 
     @staticmethod
     def combat_to_data(combat_state) -> Optional[CombatData]:

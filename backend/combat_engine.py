@@ -96,8 +96,9 @@ class CombatEngine:
                 narrative="There is nothing to attack here."
             )
 
-        # Calculate player damage
-        player_attack = self.player.get_effective_stat("attack")
+        # Calculate player damage (base + status effects + equipment)
+        equipment_stats = self.inventory.get_equipped_stats()
+        player_attack = self.player.get_effective_stat("attack") + equipment_stats.get("attack", 0)
 
         # Calculate damage (attack - defense/2, minimum 1)
         damage = max(1, player_attack - self.combat.enemy_defense // 2)
@@ -116,9 +117,10 @@ class CombatEngine:
         if self.combat.enemy_hp <= 0:
             return await self._end_combat_victory()
 
-        # Enemy counterattack
-        enemy_damage = max(1, self.combat.enemy_attack - self.player.get_effective_stat("defense") // 2)
-        actual_damage, is_dead, damage_msg = self.player.take_damage(enemy_damage, self.combat.enemy_name)
+        # Enemy counterattack — pass raw attack; take_damage applies defense
+        enemy_damage = self.combat.enemy_attack
+        equip_def = equipment_stats.get("defense", 0)
+        actual_damage, is_dead, damage_msg = self.player.take_damage(enemy_damage, self.combat.enemy_name, equip_def)
 
         # Generate narration
         narration = await self.llm.generate_combat_narration(
@@ -132,6 +134,11 @@ class CombatEngine:
         )
 
         if is_dead:
+            return await self._end_combat_defeat()
+
+        # Process status effects (poison tick, buff expiry, etc.)
+        effect_msgs = self.player.process_status_effects()
+        if effect_msgs and self.player.stats.current_hp <= 0:
             return await self._end_combat_defeat()
 
         self.combat.turn += 1
@@ -265,8 +272,9 @@ class CombatEngine:
         else:
             # Failed flee - enemy gets free attack
             if self.combat:
-                enemy_damage = max(1, self.combat.enemy_attack)
-                actual_damage, is_dead, damage_msg = self.player.take_damage(enemy_damage, self.combat.enemy_name)
+                enemy_damage = self.combat.enemy_attack
+                equip_def = self.inventory.get_equipped_stats().get("defense", 0)
+                actual_damage, is_dead, damage_msg = self.player.take_damage(enemy_damage, self.combat.enemy_name, equip_def)
 
                 if is_dead:
                     return await self._end_combat_defeat()

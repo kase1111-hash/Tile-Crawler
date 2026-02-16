@@ -147,9 +147,17 @@ Always respond with valid JSON matching the requested format."""
         if not self.is_available():
             return self._generate_fallback_room(x, y, z, biome, exits)
 
-        # Check cache first
+        # Check cache — try all enemy/npc variants so we don't exclusively
+        # return rooms with enemies (the original code hardcoded True/False)
         cache = get_llm_cache()
-        cached = cache.get(biome, z, has_enemies=True, has_npcs=False)
+        cached = None
+        for try_enemies in (True, False):
+            for try_npcs in (True, False):
+                cached = cache.get(biome, z, has_enemies=try_enemies, has_npcs=try_npcs)
+                if cached:
+                    break
+            if cached:
+                break
         if cached:
             logger.info(f"Cache hit for {biome} room at depth {z}")
             return RoomGenerationResponse(

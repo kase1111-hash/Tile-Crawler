@@ -66,7 +66,21 @@ class InventoryItem(BaseModel):
     category: str = "misc"
     quantity: int = 1
     equipped: bool = False
+    stackable: bool = True
+    max_stack: int = 99
+    slot: Optional[str] = None  # Equipment slot if equippable
     stats: dict[str, int] = Field(default_factory=dict)
+
+
+class EquipmentSlots(BaseModel):
+    """Equipped item slots — must match inventory_state.EquipmentSlots fields."""
+    head: Optional[str] = None
+    body: Optional[str] = None
+    main_hand: Optional[str] = None
+    off_hand: Optional[str] = None
+    ring_1: Optional[str] = None
+    ring_2: Optional[str] = None
+    amulet: Optional[str] = None
 
 
 class InventoryData(BaseModel):
@@ -74,6 +88,7 @@ class InventoryData(BaseModel):
     items: list[InventoryItem] = Field(default_factory=list)
     gold: int = 0
     max_slots: int = 20
+    equipment: EquipmentSlots = Field(default_factory=EquipmentSlots)
 
 
 class NarrativeEvent(BaseModel):
@@ -87,6 +102,16 @@ class NarrativeEvent(BaseModel):
     importance: int = 1
 
 
+class NPCRelationshipData(BaseModel):
+    """NPC relationship data for storage."""
+    npc_id: str
+    npc_name: str = ""
+    encounters: int = 0
+    disposition: str = "neutral"
+    key_topics: list[str] = Field(default_factory=list)
+    last_seen: tuple[int, int, int] = (0, 0, 0)
+
+
 class NarrativeData(BaseModel):
     """Narrative memory data for database storage."""
     events: list[NarrativeEvent] = Field(default_factory=list)
@@ -95,6 +120,12 @@ class NarrativeData(BaseModel):
     active_threads: list[str] = Field(default_factory=list)
     discovered_lore: list[str] = Field(default_factory=list)
     max_events: int = 100
+    # Phase 5.3 enrichments
+    theme_counts: dict[str, int] = Field(default_factory=dict)
+    npc_relationships: dict[str, NPCRelationshipData] = Field(default_factory=dict)
+    consecutive_combats: int = 0
+    rooms_since_combat: int = 0
+    rooms_since_summary: int = 0
 
 
 class CombatData(BaseModel):
