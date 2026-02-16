@@ -22,16 +22,32 @@ from llm_engine import get_llm_engine
 SESSION_TIMEOUT_MINUTES = int(os.getenv("SESSION_TIMEOUT_MINUTES", "60"))
 
 
+def _session_data_dir(session_id: str) -> str:
+    """Return a session-specific directory for state files."""
+    base = os.getenv("SESSION_DATA_DIR", "session_data")
+    path = os.path.join(base, session_id)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 @dataclass
 class GameSession:
     """A single user's game session with isolated state."""
     session_id: str
-    world: WorldState = field(default_factory=WorldState)
-    narrative: NarrativeMemory = field(default_factory=NarrativeMemory)
-    inventory: InventoryState = field(default_factory=InventoryState)
-    player: PlayerState = field(default_factory=PlayerState)
+    world: WorldState = field(init=False)
+    narrative: NarrativeMemory = field(init=False)
+    inventory: InventoryState = field(init=False)
+    player: PlayerState = field(init=False)
     created_at: datetime = field(default_factory=datetime.now)
     last_accessed: datetime = field(default_factory=datetime.now)
+
+    def __post_init__(self):
+        # Give each session its own directory so saves don't collide
+        data_dir = _session_data_dir(self.session_id)
+        self.world = WorldState(save_path=os.path.join(data_dir, "world.json"))
+        self.narrative = NarrativeMemory(save_path=os.path.join(data_dir, "narrative.json"))
+        self.inventory = InventoryState(save_path=os.path.join(data_dir, "inventory.json"))
+        self.player = PlayerState(save_path=os.path.join(data_dir, "player.json"))
 
     def touch(self) -> None:
         """Update last accessed time."""

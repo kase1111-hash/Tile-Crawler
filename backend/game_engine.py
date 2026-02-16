@@ -212,6 +212,9 @@ class GameEngine:
         self.world.update_position(new_x, new_y, new_z)
         self.player.record_step()
 
+        # Tick status effects (poison, buff expiry, etc.)
+        self.player.process_status_effects()
+
         # Get new room
         new_room = self.world.get_current_room()
 

@@ -79,6 +79,7 @@ class InteractionEngine:
         stackable = item_template.get("stackable", True)
         max_stack = item_template.get("max_stack", 99)
         slot = item_template.get("slot")
+        item_stats = item_template.get("stats", {})
 
         # Add to inventory
         success, msg = self.inventory.add_item(
@@ -89,7 +90,8 @@ class InteractionEngine:
             quantity=item_found.get("quantity", 1),
             stackable=stackable,
             max_stack=max_stack,
-            slot=slot
+            slot=slot,
+            stats=item_stats
         )
 
         if success:

@@ -107,13 +107,13 @@ class PlayerState:
         with open(self.save_path, 'w') as f:
             json.dump(data, f, indent=2)
 
-    def take_damage(self, amount: int, source: str = "unknown") -> tuple[int, bool, str]:
+    def take_damage(self, amount: int, source: str = "unknown", equipment_defense: int = 0) -> tuple[int, bool, str]:
         """
         Apply damage to the player.
         Returns (actual_damage, is_dead, message).
         """
-        # Apply defense reduction
-        defense = self.get_effective_stat("defense")
+        # Apply defense reduction (base + status effects + equipment)
+        defense = self.get_effective_stat("defense") + equipment_defense
         reduced_damage = max(1, amount - (defense // 2))
 
         self.stats.current_hp -= reduced_damage

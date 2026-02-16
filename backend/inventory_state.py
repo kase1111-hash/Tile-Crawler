@@ -21,6 +21,7 @@ class InventoryItem(BaseModel):
     max_stack: int = 99
     equipped: bool = False
     slot: Optional[str] = None  # Equipment slot if equippable
+    stats: dict[str, int] = Field(default_factory=dict)  # Stat bonuses when equipped
 
 
 class EquipmentSlots(BaseModel):
@@ -117,7 +118,8 @@ class InventoryState:
         quantity: int = 1,
         stackable: bool = True,
         max_stack: int = 99,
-        slot: Optional[str] = None
+        slot: Optional[str] = None,
+        stats: Optional[dict[str, int]] = None
     ) -> tuple[bool, str]:
         """
         Add an item to the inventory.
@@ -151,7 +153,8 @@ class InventoryState:
             quantity=quantity,
             stackable=stackable,
             max_stack=max_stack,
-            slot=slot
+            slot=slot,
+            stats=stats or {}
         )
         return True, f"Picked up {name}" + (f" x{quantity}" if quantity > 1 else "")
 
@@ -308,8 +311,10 @@ class InventoryState:
             "speed": 0,
             "magic": 0
         }
-        # Note: Actual stat calculation would need item data from items.json
-        # This is a placeholder that returns the structure
+        for item in self.items.values():
+            if item.equipped and item.stats:
+                for stat_key in stats:
+                    stats[stat_key] += item.stats.get(stat_key, 0)
         return stats
 
     def get_inventory_summary(self) -> str:
