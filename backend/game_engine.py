@@ -6,9 +6,12 @@ Delegates combat to CombatEngine and interactions to InteractionEngine.
 """
 
 import json
+import logging
 import os
 import random
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from world_state import WorldState, RoomData
 from narrative_memory import NarrativeMemory
@@ -511,7 +514,7 @@ class GameEngine:
                 room = await self._generate_room(new_x, new_y, new_z, biome, exits)
                 results[direction] = room is not None
             except Exception as e:
-                print(f"Prefetch failed for {direction}: {e}")
+                logger.warning("Prefetch failed for %s: %s", direction, e)
                 results[direction] = False
 
         return results

@@ -7,9 +7,12 @@ of previously visited areas.
 """
 
 import json
+import logging
 import os
 from typing import Optional
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class RoomData(BaseModel):
@@ -66,7 +69,7 @@ class WorldState:
                     self.explored_count = data.get("explored_count", 0)
                     self.world_seed = data.get("world_seed")
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"Warning: Could not load world state: {e}")
+                logger.warning("Could not load world state: %s", e)
                 self._init_default()
         else:
             self._init_default()

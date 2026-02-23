@@ -6,6 +6,7 @@ FastAPI application providing endpoints for the dungeon crawler game.
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -19,7 +20,13 @@ from exceptions import TileCrawlerError
 from llm_engine import get_llm_engine
 from routers import health, game, combat, inventory, interaction
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
+
 logger = logging.getLogger(__name__)
+request_logger = logging.getLogger("tile_crawler.requests")
 
 
 # =============================================================================
@@ -49,12 +56,12 @@ if WEBSOCKET_ENABLED:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan."""
-    print("Tile-Crawler Backend Starting...")
-    print(f"   LLM Available: {get_llm_engine().is_available()}")
-    print(f"   Auth: {'enabled' if AUTH_ENABLED else 'disabled'}")
-    print(f"   WebSocket: {'enabled' if WEBSOCKET_ENABLED else 'disabled'}")
+    logger.info("Tile-Crawler Backend Starting...")
+    logger.info("   LLM Available: %s", get_llm_engine().is_available())
+    logger.info("   Auth: %s", "enabled" if AUTH_ENABLED else "disabled")
+    logger.info("   WebSocket: %s", "enabled" if WEBSOCKET_ENABLED else "disabled")
     yield
-    print("Tile-Crawler Backend Shutting Down...")
+    logger.info("Tile-Crawler Backend Shutting Down...")
 
 
 app = FastAPI(
@@ -101,6 +108,22 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "Accept"],
 )
+
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.monotonic()
+    response = await call_next(request)
+    elapsed = time.monotonic() - start
+    request_logger.info(
+        "%s %s %d %.2fs",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed,
+    )
+    return response
 
 
 # =============================================================================

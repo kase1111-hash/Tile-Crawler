@@ -6,10 +6,13 @@ for consistent narrative continuity and tone across the adventure.
 """
 
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class NarrativeEvent(BaseModel):
@@ -80,7 +83,7 @@ class NarrativeMemory:
                     self.rooms_since_combat = data.get("rooms_since_combat", 0)
                     self.rooms_since_summary = data.get("rooms_since_summary", 0)
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"Warning: Could not load narrative memory: {e}")
+                logger.warning("Could not load narrative memory: %s", e)
                 self._init_default()
         else:
             self._init_default()

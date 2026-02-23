@@ -138,11 +138,12 @@ class GameStateResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """API health check response."""
-    model_config = ConfigDict(json_schema_extra={"example": {"status": "healthy", "llm_available": True, "version": "0.1.0"}})
+    model_config = ConfigDict(json_schema_extra={"example": {"status": "healthy", "llm_available": True, "version": "0.1.0", "active_sessions": 0}})
 
-    status: str = Field(description="Service status: online, healthy, degraded")
+    status: str = Field(description="Service status: healthy or degraded")
     llm_available: bool = Field(description="Whether the LLM engine is available")
     version: str = Field(description="API version string")
+    active_sessions: int = Field(default=0, description="Number of active game sessions")
 
 
 class InventoryResponse(BaseModel):

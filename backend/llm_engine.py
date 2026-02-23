@@ -113,7 +113,7 @@ Always respond with valid JSON matching the requested format."""
                         key = filename.replace(".json", "")
                         data[key] = json.load(f)
                 except Exception as e:
-                    print(f"Warning: Could not load {filename}: {e}")
+                    logger.warning("Could not load %s: %s", filename, e)
 
         # Load biome prompt templates
         prompts_path = os.path.join(os.path.dirname(__file__), "prompts", "biomes.json")
@@ -122,7 +122,7 @@ Always respond with valid JSON matching the requested format."""
                 with open(prompts_path, 'r', encoding='utf-8') as f:
                     data["biome_prompts"] = json.load(f)
             except Exception as e:
-                print(f"Warning: Could not load biome prompts: {e}")
+                logger.warning("Could not load biome prompts: %s", e)
 
         return data
 
@@ -877,7 +877,7 @@ Respond with JSON:
             return data.get("description", f"You examine the {item_name}.")
 
         except Exception as e:
-            print(f"LLM item description failed: {e}")
+            logger.error("LLM item description failed: %s", e)
             return f"You examine the {item_name}."
 
     @timed_llm_call("summarize_story")
@@ -918,7 +918,7 @@ Respond with JSON:
             return data.get("summary", current_summary)
 
         except Exception as e:
-            print(f"LLM story summary failed: {e}")
+            logger.error("LLM story summary failed: %s", e)
             return current_summary
 
 

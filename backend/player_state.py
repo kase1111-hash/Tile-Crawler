@@ -5,9 +5,12 @@ Handles player stats, health, experience, leveling, and status effects.
 """
 
 import json
+import logging
 import os
 from typing import Optional
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class StatusEffect(BaseModel):
@@ -72,7 +75,7 @@ class PlayerState:
                     self.steps_taken = data.get("steps_taken", 0)
                     self.is_alive = data.get("is_alive", True)
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"Warning: Could not load player state: {e}")
+                logger.warning("Could not load player state: %s", e)
                 self._init_default()
         else:
             self._init_default()

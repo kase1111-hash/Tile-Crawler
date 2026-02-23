@@ -5,9 +5,12 @@ Handles player inventory, equipment, and item management.
 """
 
 import json
+import logging
 import os
 from typing import Optional
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class InventoryItem(BaseModel):
@@ -60,7 +63,7 @@ class InventoryState:
                     self.equipment = EquipmentSlots(**data.get("equipment", {}))
                     self.gold = data.get("gold", 0)
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"Warning: Could not load inventory state: {e}")
+                logger.warning("Could not load inventory state: %s", e)
                 self._init_default()
         else:
             self._init_default()

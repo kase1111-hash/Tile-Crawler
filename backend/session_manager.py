@@ -6,10 +6,13 @@ Each user gets their own isolated game engine instance.
 """
 
 import asyncio
+import logging
 import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 from world_state import WorldState
 from narrative_memory import NarrativeMemory
@@ -149,7 +152,7 @@ class SessionManager:
                 await asyncio.sleep(interval_minutes * 60)
                 cleaned = await self.cleanup_expired_sessions()
                 if cleaned > 0:
-                    print(f"Session cleanup: removed {cleaned} expired sessions")
+                    logger.info("Session cleanup: removed %d expired sessions", cleaned)
 
         self._cleanup_task = asyncio.create_task(cleanup_loop())
 
