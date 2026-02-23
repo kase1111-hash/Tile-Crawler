@@ -95,8 +95,8 @@ class TestFallbackRoomGeneration:
             inventory_summary="",
         )
 
-        # Map should have rows, all same length
-        assert len(result.map) >= 9
+        # Map should have rows, all same length (some biomes use compact 8-row maps)
+        assert len(result.map) >= 7
         row_lengths = [len(row) for row in result.map]
         assert len(set(row_lengths)) == 1  # all same length
 

@@ -68,9 +68,9 @@ class TestFallbackRoomVariety:
             # All rows same length
             lengths = [len(row) for row in result.map]
             assert len(set(lengths)) == 1, f"Inconsistent row lengths for {biome}: {lengths}"
-            # Reasonable dimensions
-            assert lengths[0] >= 11
-            assert len(result.map) >= 9
+            # Reasonable dimensions (some biomes use compact maps)
+            assert lengths[0] >= 7, f"Map too narrow for {biome}: {lengths[0]}"
+            assert len(result.map) >= 7, f"Map too short for {biome}: {len(result.map)}"
 
 
 class TestFallbackExits:

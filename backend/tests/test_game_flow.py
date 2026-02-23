@@ -27,24 +27,26 @@ class TestCompleteGameFlow:
 
         # Find and use an exit
         exits = initial_state["room"]["exits"]
-        moved = False
-        for direction, available in exits.items():
-            if available and direction in ["north", "south", "east", "west"]:
-                move_resp = test_client.post(
-                    "/api/game/move",
-                    json={"direction": direction}
-                )
-                if move_resp.json()["success"]:
-                    moved = True
-                    break
+        valid_exit = next(
+            (d for d, available in exits.items()
+             if available and d in ["north", "south", "east", "west"]),
+            None,
+        )
+        assert valid_exit is not None, "Starting room should have at least one cardinal exit"
 
-        if moved:
-            # Check position changed
-            state_resp = test_client.get("/api/game/state")
-            new_state = state_resp.json()
+        move_resp = test_client.post(
+            "/api/game/move",
+            json={"direction": valid_exit}
+        )
+        assert move_resp.status_code == 200
+        assert move_resp.json()["success"] is True
 
-            assert new_state["position"] != initial_pos
-            assert new_state["stats"]["rooms_explored"] >= initial_rooms
+        # Check position changed
+        state_resp = test_client.get("/api/game/state")
+        new_state = state_resp.json()
+
+        assert new_state["position"] != initial_pos
+        assert new_state["stats"]["rooms_explored"] >= initial_rooms
 
     def test_inventory_management(self, test_client):
         """Test inventory operations."""
@@ -144,7 +146,7 @@ class TestCompleteGameFlow:
         test_client.post("/api/game/new", json={})
 
         visited_positions = set()
-        visited_positions.add(tuple([0, 0, 0]))
+        visited_positions.add((0, 0, 0))
 
         # Try to visit multiple rooms
         for _ in range(5):
@@ -158,7 +160,7 @@ class TestCompleteGameFlow:
                         "/api/game/move",
                         json={"direction": direction}
                     )
-                    if move_resp.json()["success"]:
+                    if move_resp.status_code == 200 and move_resp.json()["success"]:
                         new_state = move_resp.json()["state"]
                         visited_positions.add(tuple(new_state["position"]))
                         break
@@ -178,16 +180,20 @@ class TestCompleteGameFlow:
         state = new_resp.json()["state"]
         exits = state["room"]["exits"]
 
-        for direction, available in exits.items():
-            if available and direction in ["north", "south", "east", "west"]:
-                move_resp = test_client.post(
-                    "/api/game/move",
-                    json={"direction": direction}
-                )
-                if move_resp.json()["success"]:
-                    new_narrative = move_resp.json()["narrative"]
-                    assert new_narrative != ""
-                    break
+        valid_exit = next(
+            (d for d, available in exits.items()
+             if available and d in ["north", "south", "east", "west"]),
+            None,
+        )
+        assert valid_exit is not None, "Starting room should have at least one exit"
+
+        move_resp = test_client.post(
+            "/api/game/move",
+            json={"direction": valid_exit}
+        )
+        assert move_resp.status_code == 200
+        assert move_resp.json()["success"] is True
+        assert move_resp.json()["narrative"] != ""
 
     def test_room_has_expected_structure(self, test_client):
         """Test that rooms have expected data structure."""
@@ -241,25 +247,29 @@ class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
     def test_operations_without_game(self, test_client):
-        """Test operations before starting a game."""
-        # These should handle gracefully
+        """Test operations before starting a game return structured errors."""
         move_resp = test_client.post("/api/game/move", json={"direction": "north"})
-        # May return error or empty state, but shouldn't crash
-        assert move_resp.status_code in [200, 500]
+        # Game-specific errors return 400, other errors return 500
+        assert move_resp.status_code in [400, 500]
 
     def test_rapid_movements(self, test_client):
-        """Test rapid sequential movements."""
+        """Test rapid sequential movements don't crash the game."""
         test_client.post("/api/game/new", json={})
 
         # Make many rapid moves
         for _ in range(10):
-            state = test_client.get("/api/game/state").json()
+            state_resp = test_client.get("/api/game/state")
+            assert state_resp.status_code == 200
+            state = state_resp.json()
             exits = state["room"]["exits"]
 
-            for direction, available in exits.items():
-                if available and direction in ["north", "south", "east", "west"]:
-                    test_client.post("/api/game/move", json={"direction": direction})
-                    break
+            valid_exit = next(
+                (d for d, available in exits.items()
+                 if available and d in ["north", "south", "east", "west"]),
+                None,
+            )
+            if valid_exit:
+                test_client.post("/api/game/move", json={"direction": valid_exit})
 
         # Game should still be functional
         final_state = test_client.get("/api/game/state")
@@ -274,13 +284,22 @@ class TestEdgeCases:
         assert talk_resp.status_code == 200
 
     def test_special_characters_in_name(self, test_client):
-        """Test player name with special characters."""
+        """Test player name with disallowed characters is rejected."""
         response = test_client.post(
             "/api/game/new",
-            json={"player_name": "Test<>Hero&'\""}
+            json={"player_name": "Test<>Hero&\""}
+        )
+
+        # Pydantic validation rejects angle brackets and ampersands
+        assert response.status_code == 422
+
+    def test_allowed_special_characters_in_name(self, test_client):
+        """Test player name with allowed special characters (hyphens, apostrophes)."""
+        response = test_client.post(
+            "/api/game/new",
+            json={"player_name": "Sir O'Brien-Smith"}
         )
 
         assert response.status_code == 200
-        # Name should be accepted or sanitized
         state = response.json()["state"]
-        assert state["player"]["name"] is not None
+        assert state["player"]["name"] == "Sir O'Brien-Smith"
