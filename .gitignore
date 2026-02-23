@@ -52,6 +52,7 @@ Thumbs.db
 # Game state files (generated at runtime)
 backend/*.json
 !backend/tests/*.json
+backend/session_data/
 
 # Database files (generated at runtime)
 backend/*.db
