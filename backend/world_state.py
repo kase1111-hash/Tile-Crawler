@@ -181,24 +181,3 @@ class WorldState:
         self._init_default()
         if os.path.exists(self.save_path):
             os.remove(self.save_path)
-
-
-# Global instance
-_world_state: Optional[WorldState] = None
-
-
-def get_world_state() -> WorldState:
-    """Get the global world state instance."""
-    global _world_state
-    if _world_state is None:
-        _world_state = WorldState()
-    return _world_state
-
-
-def reset_world_state() -> WorldState:
-    """Reset and return a fresh world state."""
-    global _world_state
-    if _world_state:
-        _world_state.reset()
-    _world_state = WorldState()
-    return _world_state

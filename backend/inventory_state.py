@@ -334,24 +334,3 @@ class InventoryState:
         self._init_default()
         if os.path.exists(self.save_path):
             os.remove(self.save_path)
-
-
-# Global instance
-_inventory_state: Optional[InventoryState] = None
-
-
-def get_inventory_state() -> InventoryState:
-    """Get the global inventory state instance."""
-    global _inventory_state
-    if _inventory_state is None:
-        _inventory_state = InventoryState()
-    return _inventory_state
-
-
-def reset_inventory_state() -> InventoryState:
-    """Reset and return fresh inventory state."""
-    global _inventory_state
-    if _inventory_state:
-        _inventory_state.reset()
-    _inventory_state = InventoryState()
-    return _inventory_state
