@@ -6,6 +6,7 @@ FastAPI application providing endpoints for the dungeon crawler game.
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,12 +15,18 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from dependencies import AUTH_ENABLED, WEBSOCKET_ENABLED, limiter
+from dependencies import AUTH_ENABLED, limiter
 from exceptions import TileCrawlerError
 from llm_engine import get_llm_engine
 from routers import health, game, combat, inventory, interaction
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
+
 logger = logging.getLogger(__name__)
+request_logger = logging.getLogger("tile_crawler.requests")
 
 
 # =============================================================================
@@ -38,9 +45,6 @@ tags_metadata = [
 if AUTH_ENABLED:
     tags_metadata.insert(0, {"name": "Authentication", "description": "User registration, login, and profile management"})
 
-if WEBSOCKET_ENABLED:
-    tags_metadata.append({"name": "WebSocket", "description": "Real-time game updates via WebSocket connection"})
-
 
 # =============================================================================
 # Application Setup
@@ -49,12 +53,11 @@ if WEBSOCKET_ENABLED:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan."""
-    print("Tile-Crawler Backend Starting...")
-    print(f"   LLM Available: {get_llm_engine().is_available()}")
-    print(f"   Auth: {'enabled' if AUTH_ENABLED else 'disabled'}")
-    print(f"   WebSocket: {'enabled' if WEBSOCKET_ENABLED else 'disabled'}")
+    logger.info("Tile-Crawler Backend Starting...")
+    logger.info("   LLM Available: %s", get_llm_engine().is_available())
+    logger.info("   Auth: %s", "enabled" if AUTH_ENABLED else "disabled")
     yield
-    print("Tile-Crawler Backend Shutting Down...")
+    logger.info("Tile-Crawler Backend Shutting Down...")
 
 
 app = FastAPI(
@@ -92,7 +95,7 @@ async def generic_error_handler(request: Request, exc: Exception):
     )
 
 
-# CORS
+# TODO: tighten CORS origins for production deployment
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -101,6 +104,22 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "Accept"],
 )
+
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.monotonic()
+    response = await call_next(request)
+    elapsed = time.monotonic() - start
+    request_logger.info(
+        "%s %s %d %.2fs",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed,
+    )
+    return response
 
 
 # =============================================================================
@@ -116,10 +135,6 @@ app.include_router(interaction.router)
 if AUTH_ENABLED:
     from routers import auth
     app.include_router(auth.router)
-
-if WEBSOCKET_ENABLED:
-    from routers import websocket
-    app.include_router(websocket.router)
 
 
 # =============================================================================

@@ -129,6 +129,7 @@ class AuthService:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             user_id = int(payload.get("sub"))
             username = payload.get("username")
+            # TODO: use datetime.fromtimestamp(ts, tz=timezone.utc) for consistency
             exp = datetime.fromtimestamp(payload.get("exp"))
 
             if user_id is None or username is None:

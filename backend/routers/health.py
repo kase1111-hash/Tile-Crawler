@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from llm_engine import get_llm_engine
+from session_manager import get_session_manager
 from schemas import HealthResponse
 
 router = APIRouter(tags=["Health"])
@@ -16,8 +17,12 @@ router = APIRouter(tags=["Health"])
 )
 async def health_check():
     """API health check."""
+    llm_available = get_llm_engine().is_available()
+    session_count = await get_session_manager().get_session_count()
+
     return HealthResponse(
-        status="healthy",
-        llm_available=get_llm_engine().is_available(),
-        version="0.1.0"
+        status="healthy" if llm_available else "degraded",
+        llm_available=llm_available,
+        version="0.1.0",
+        active_sessions=session_count,
     )

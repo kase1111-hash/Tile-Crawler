@@ -14,7 +14,6 @@ load_dotenv()
 
 # Feature flags
 AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() == "true"
-WEBSOCKET_ENABLED = os.getenv("WEBSOCKET_ENABLED", "false").lower() == "true"
 
 # Rate limiting
 RATE_LIMIT_AUTH = os.getenv("RATE_LIMIT_AUTH", "10/minute")

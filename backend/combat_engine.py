@@ -21,8 +21,10 @@ from exceptions import NotInCombatError
 # Combat Constants
 # =============================================================================
 
-CRITICAL_HIT_CHANCE = 0.05  # 5% chance for critical hit
-CRITICAL_HIT_MULTIPLIER = 2  # Damage multiplier on critical
+# 5% crit keeps combat unpredictable without making it feel random — at
+# ~1 in 20 hits, crits are memorable events rather than noise.
+CRITICAL_HIT_CHANCE = 0.05
+CRITICAL_HIT_MULTIPLIER = 2
 FLEE_BASE_CHANCE = 50  # Base percentage chance to flee
 FLEE_SPEED_MODIFIER = 2  # Multiplier for speed difference
 
@@ -97,7 +99,8 @@ class CombatEngine:
         equipment_stats = self.inventory.get_equipped_stats()
         player_attack = self.player.get_effective_stat("attack") + equipment_stats.get("attack", 0)
 
-        # Calculate damage (attack - defense/2, minimum 1)
+        # Defense is halved so it dampens damage without nullifying it — a
+        # goblin with 6 defense shouldn't negate a lvl-1 player's 10 attack.
         damage = max(1, player_attack - self.combat.enemy_defense // 2)
 
         # Apply critical hit chance
