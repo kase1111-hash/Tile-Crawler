@@ -140,10 +140,14 @@ class NarrativeMemory:
         self._trim_events()
 
     def _trim_events(self) -> None:
-        """Trim events to max size, preserving important events longer."""
+        """Trim events to max size, preserving important events longer.
+
+        We prioritize importance over recency so the LLM context retains
+        key story beats (boss kills, NPC revelations) even if they happened
+        20 rooms ago. Without this, the LLM "forgets" major plot points
+        and generates contradictory dialogue.
+        """
         if len(self.events) > self.max_events:
-            # Sort by importance (descending) then by timestamp (ascending for older)
-            # Keep most important and most recent
             sorted_events = sorted(
                 self.events,
                 key=lambda e: (e.importance, e.timestamp),
@@ -307,7 +311,8 @@ class NarrativeMemory:
             if len(rel.key_topics) > 10:
                 rel.key_topics = rel.key_topics[-10:]
 
-        # Auto-adjust disposition based on encounters
+        # Auto-upgrade after 5 encounters: enough visits to feel earned, few
+        # enough that players see it happen in a typical session (~30 rooms).
         if rel.encounters >= 5 and rel.disposition == "neutral":
             rel.disposition = "friendly"
 

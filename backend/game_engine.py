@@ -29,9 +29,12 @@ from exceptions import CombatActiveError, InvalidDirectionError, NoExitError, Ro
 # Dungeon Generation Constants
 # =============================================================================
 
-NEW_EXIT_CHANCE = 0.5  # 50% chance for new exit in generated rooms
-STAIRS_SPAWN_CHANCE = 0.1  # 10% chance for stairs to appear
-MAX_DUNGEON_DEPTH = 10  # Maximum floor depth
+# 50% new-exit chance produces ~2-3 exits per room on average, giving
+# the dungeon a branching-corridor feel without becoming an open grid.
+# Lower values make linear hallways; higher values make open plazas.
+NEW_EXIT_CHANCE = 0.5
+STAIRS_SPAWN_CHANCE = 0.1  # 10% — stairs are rare enough to feel like events
+MAX_DUNGEON_DEPTH = 10
 
 
 class GameEngine:
@@ -508,6 +511,7 @@ class GameEngine:
                 results[direction] = True
                 continue
 
+            # TODO: rate-limit prefetch per session to prevent abuse
             try:
                 biome = self._determine_biome(new_z)
                 exits = self._determine_exits(new_x, new_y, new_z, direction)

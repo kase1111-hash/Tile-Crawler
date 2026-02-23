@@ -62,7 +62,9 @@ class LLMEngine:
         else:
             self.client = None
 
-        # Temperature settings for different contexts
+        # Temperature per context: combat is low (0.5) so damage narration
+        # stays coherent; descriptions are high (0.9) for variety since
+        # players see dozens of room descriptions per session.
         self.temperatures = {
             "exploration": float(os.getenv("LLM_TEMPERATURE", "0.8")),
             "combat": 0.5,

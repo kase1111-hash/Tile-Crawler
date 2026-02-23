@@ -95,7 +95,7 @@ async def generic_error_handler(request: Request, exc: Exception):
     )
 
 
-# CORS
+# TODO: tighten CORS origins for production deployment
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,

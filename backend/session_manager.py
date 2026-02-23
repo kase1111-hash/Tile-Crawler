@@ -26,7 +26,12 @@ SESSION_TIMEOUT_MINUTES = int(os.getenv("SESSION_TIMEOUT_MINUTES", "60"))
 
 
 def _session_data_dir(session_id: str) -> str:
-    """Return a session-specific directory for state files."""
+    """Return a session-specific directory for state files.
+
+    State lives on disk (not purely in-memory) so that a server restart
+    doesn't destroy every active game. The trade-off is slightly slower
+    save/load, but durability matters more for a game with manual saves.
+    """
     base = os.getenv("SESSION_DATA_DIR", "session_data")
     path = os.path.join(base, session_id)
     os.makedirs(path, exist_ok=True)

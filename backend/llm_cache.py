@@ -25,7 +25,12 @@ class CachedRoom(BaseModel):
 
 
 def _depth_range(z: int) -> str:
-    """Bucket depth into ranges for cache key granularity."""
+    """Bucket depth into ranges for cache key granularity.
+
+    Exact depth would fragment the cache too much — a z=3 room and z=4 room
+    are thematically similar enough to share cached results. Ranges are tuned
+    to match the biome tiers in game_engine._determine_biome().
+    """
     if z <= 2:
         return "0-2"
     elif z <= 5:

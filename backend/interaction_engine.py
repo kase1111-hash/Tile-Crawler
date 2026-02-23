@@ -216,6 +216,7 @@ class InteractionEngine:
 
         # Get NPC data
         npc_id = room.npcs[0]  # Talk to first NPC
+        # TODO: cache NPC data instead of re-reading JSON on every talk()
         npc_data_path = os.path.join(os.path.dirname(__file__), "..", "data", "npcs.json")
         npc_data = {}
         if os.path.exists(npc_data_path):
