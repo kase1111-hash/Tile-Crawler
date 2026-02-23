@@ -2,10 +2,10 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, Request
 
 from auth import User
-from dependencies import get_optional_user
+from dependencies import get_optional_user, limiter, RATE_LIMIT_GAME
 from game_engine import get_game_engine_for_session
 from session_manager import get_session_id_for_user
 from schemas import TakeItemRequest, UseItemRequest, ActionResponse, InventoryResponse
@@ -19,26 +19,25 @@ router = APIRouter(prefix="/api/game", tags=["Inventory"])
     summary="Take item",
     description="Pick up an item from the current room and add it to inventory."
 )
+@limiter.limit(RATE_LIMIT_GAME)
 async def take_item(
-    request: TakeItemRequest,
+    request: Request,
+    item_request: TakeItemRequest,
     current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Pick up an item from the current room."""
-    try:
-        session_id = get_session_id_for_user(
-            current_user.id if current_user else None
-        )
-        engine = await get_game_engine_for_session(session_id)
-        result = await engine.take_item(request.item_id)
+    session_id = get_session_id_for_user(
+        current_user.id if current_user else None
+    )
+    engine = await get_game_engine_for_session(session_id)
+    result = await engine.take_item(item_request.item_id)
 
-        return ActionResponse(
-            success=result.success,
-            message=result.message,
-            narrative=result.narrative,
-            state=engine.get_game_state()
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ActionResponse(
+        success=result.success,
+        message=result.message,
+        narrative=result.narrative,
+        state=engine.get_game_state()
+    )
 
 
 @router.post(
@@ -52,27 +51,26 @@ Different item types produce different effects:
 - **Scrolls**: Cast magical effects
 - **Equipment**: Equip weapons or armor"""
 )
+@limiter.limit(RATE_LIMIT_GAME)
 async def use_item(
-    request: UseItemRequest,
+    request: Request,
+    item_request: UseItemRequest,
     current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Use an item from inventory."""
-    try:
-        session_id = get_session_id_for_user(
-            current_user.id if current_user else None
-        )
-        engine = await get_game_engine_for_session(session_id)
-        result = await engine.use_item(request.item_id)
+    session_id = get_session_id_for_user(
+        current_user.id if current_user else None
+    )
+    engine = await get_game_engine_for_session(session_id)
+    result = await engine.use_item(item_request.item_id)
 
-        return ActionResponse(
-            success=result.success,
-            message=result.message,
-            narrative=result.narrative,
-            state=engine.get_game_state(),
-            combat=result.combat_data
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ActionResponse(
+        success=result.success,
+        message=result.message,
+        narrative=result.narrative,
+        state=engine.get_game_state(),
+        combat=result.combat_data
+    )
 
 
 @router.get(
@@ -81,19 +79,18 @@ async def use_item(
     summary="Get inventory",
     description="Retrieve the player's current inventory items and gold count."
 )
+@limiter.limit(RATE_LIMIT_GAME)
 async def get_inventory(
+    request: Request,
     current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Get the player's inventory."""
-    try:
-        session_id = get_session_id_for_user(
-            current_user.id if current_user else None
-        )
-        engine = await get_game_engine_for_session(session_id)
-        state = engine.get_game_state()
-        return {
-            "inventory": state["inventory"],
-            "gold": state["gold"]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    session_id = get_session_id_for_user(
+        current_user.id if current_user else None
+    )
+    engine = await get_game_engine_for_session(session_id)
+    state = engine.get_game_state()
+    return {
+        "inventory": state["inventory"],
+        "gold": state["gold"]
+    }

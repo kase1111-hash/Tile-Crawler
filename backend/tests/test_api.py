@@ -88,24 +88,22 @@ class TestMovement:
 
         # Find an available exit
         exits = state["room"]["exits"]
-        valid_direction = None
-        for direction, available in exits.items():
-            if available:
-                valid_direction = direction
-                break
+        valid_direction = next(
+            (d for d, available in exits.items() if available), None
+        )
+        assert valid_direction is not None, "Starting room should have at least one exit"
 
-        if valid_direction:
-            response = test_client.post(
-                "/api/game/move",
-                json={"direction": valid_direction}
-            )
+        response = test_client.post(
+            "/api/game/move",
+            json={"direction": valid_direction}
+        )
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["success"] == True
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
 
     def test_move_invalid_direction(self, test_client):
-        """Test moving in an invalid direction."""
+        """Test moving in an invalid direction returns 400 (InvalidDirectionError)."""
         test_client.post("/api/game/new", json={})
 
         response = test_client.post(
@@ -114,29 +112,31 @@ class TestMovement:
         )
 
         assert response.status_code == 400
+        data = response.json()
+        assert "error_type" in data
 
     def test_move_blocked_direction(self, test_client):
-        """Test moving where no exit exists."""
+        """Test moving where no exit exists returns 400 (NoExitError)."""
         new_game_resp = test_client.post("/api/game/new", json={})
         state = new_game_resp.json()["state"]
 
         # Find a blocked exit
         exits = state["room"]["exits"]
-        blocked_direction = None
-        for direction in ["north", "south", "east", "west"]:
-            if not exits.get(direction, False):
-                blocked_direction = direction
-                break
+        blocked_direction = next(
+            (d for d in ["north", "south", "east", "west"]
+             if not exits.get(d, False)),
+            None,
+        )
+        assert blocked_direction is not None, "Starting room should have at least one blocked exit"
 
-        if blocked_direction:
-            response = test_client.post(
-                "/api/game/move",
-                json={"direction": blocked_direction}
-            )
+        response = test_client.post(
+            "/api/game/move",
+            json={"direction": blocked_direction}
+        )
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["success"] == False
+        assert response.status_code == 400
+        data = response.json()
+        assert "error_type" in data
 
 
 class TestInventory:
@@ -216,21 +216,21 @@ class TestCombat:
     """Tests for combat endpoints."""
 
     def test_attack_no_combat(self, test_client):
-        """Test attacking when not in combat."""
+        """Test attacking when not in combat returns 400 (NotInCombatError)."""
         test_client.post("/api/game/new", json={})
 
         response = test_client.post("/api/game/combat/attack")
 
-        assert response.status_code == 200
+        assert response.status_code == 400
         data = response.json()
-        assert data["success"] == False
+        assert data["error_type"] == "NotInCombatError"
 
     def test_flee_no_combat(self, test_client):
-        """Test fleeing when not in combat."""
+        """Test fleeing when not in combat returns 400 (NotInCombatError)."""
         test_client.post("/api/game/new", json={})
 
         response = test_client.post("/api/game/combat/flee")
 
-        assert response.status_code == 200
+        assert response.status_code == 400
         data = response.json()
-        assert data["success"] == False
+        assert data["error_type"] == "NotInCombatError"

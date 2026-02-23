@@ -307,24 +307,3 @@ class PlayerState:
         self._init_default()
         if os.path.exists(self.save_path):
             os.remove(self.save_path)
-
-
-# Global instance
-_player_state: Optional[PlayerState] = None
-
-
-def get_player_state() -> PlayerState:
-    """Get the global player state instance."""
-    global _player_state
-    if _player_state is None:
-        _player_state = PlayerState()
-    return _player_state
-
-
-def reset_player_state() -> PlayerState:
-    """Reset and return fresh player state."""
-    global _player_state
-    if _player_state:
-        _player_state.reset()
-    _player_state = PlayerState()
-    return _player_state

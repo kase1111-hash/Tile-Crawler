@@ -4,6 +4,8 @@ import pytest
 import random
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from exceptions import NotInCombatError
+
 from combat_engine import (
     CombatEngine,
     CombatState,
@@ -183,9 +185,8 @@ class TestAttackNotInCombat:
 
     @pytest.mark.asyncio
     async def test_attack_without_combat(self, combat_engine):
-        result = await combat_engine.attack()
-        assert result.success is False
-        assert "Not in combat" in result.message
+        with pytest.raises(NotInCombatError):
+            await combat_engine.attack()
 
 
 class TestEnemyCounterattack:
@@ -261,9 +262,8 @@ class TestFleeFormula:
 
     @pytest.mark.asyncio
     async def test_flee_not_in_combat(self, combat_engine):
-        result = await combat_engine.flee()
-        assert result.success is False
-        assert "Not in combat" in result.message
+        with pytest.raises(NotInCombatError):
+            await combat_engine.flee()
 
     @pytest.mark.asyncio
     async def test_flee_success_with_high_roll(self, combat_engine, player):

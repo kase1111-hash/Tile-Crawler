@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from game_engine import get_game_engine, reset_game_engine
+from exceptions import TileCrawlerError
+from game_engine import get_game_engine_for_session, reset_game_engine_for_session
 from websocket_manager import get_websocket_manager
 
 router = APIRouter()
@@ -20,13 +21,13 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
     if not await ws_manager.connect(websocket, player_id):
         return
 
-    engine = get_game_engine()
+    engine = await get_game_engine_for_session(player_id)
 
     try:
         await ws_manager.send_to_player(player_id, {
             "type": "connected",
             "message": f"Connected as {player_id}",
-            "state": engine.get_game_state() if engine._player_state else None
+            "state": engine.get_game_state()
         })
 
         while True:
@@ -76,12 +77,11 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
                     result = await engine.talk(message)
 
                 elif action == "rest":
-                    result = engine.rest()
+                    result = await engine.rest()
 
                 elif action == "new_game":
                     player_name = data.get("player_name", "Adventurer")
-                    reset_game_engine()
-                    engine = get_game_engine()
+                    engine = await reset_game_engine_for_session(player_id)
                     result = await engine.new_game(player_name)
 
                 else:
@@ -98,8 +98,10 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
                         dialogue=result.dialogue_data
                     )
 
-            except Exception as e:
+            except TileCrawlerError as e:
                 await ws_manager.send_error(player_id, str(e))
+            except Exception:
+                await ws_manager.send_error(player_id, "An internal error occurred")
 
     except WebSocketDisconnect:
         await ws_manager.disconnect(player_id)

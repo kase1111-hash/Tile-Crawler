@@ -283,23 +283,35 @@ class TestAuthService:
 
 
 class TestAuthAPI:
-    """Tests for authentication API endpoints."""
+    """Tests for authentication API endpoints.
+
+    These tests require AUTH_ENABLED=true at app startup to mount auth routes.
+    Skipped automatically when auth routes are not available.
+    """
 
     @pytest.fixture
     def test_client(self):
         """Create a test client with clean database."""
-        # Use temp database - set env BEFORE resetting auth service
         import tempfile
         temp_db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         os.environ["DB_PATH"] = temp_db.name
 
-        # Now reset auth service so it picks up the new DB_PATH
         reset_auth_service()
 
         from fastapi.testclient import TestClient
         from main import app
 
         client = TestClient(app)
+
+        # Skip entire class if auth routes aren't mounted
+        probe = client.post("/api/auth/register", json={"username": "_probe", "password": "probe123"})
+        if probe.status_code == 404:
+            temp_db.close()
+            if os.path.exists(temp_db.name):
+                os.unlink(temp_db.name)
+            reset_auth_service()
+            pytest.skip("Auth routes not mounted (AUTH_ENABLED=false at app startup)")
+
         yield client
 
         # Cleanup

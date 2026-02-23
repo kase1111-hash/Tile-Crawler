@@ -395,24 +395,3 @@ class NarrativeMemory:
         self._init_default()
         if os.path.exists(self.save_path):
             os.remove(self.save_path)
-
-
-# Global instance
-_narrative_memory: Optional[NarrativeMemory] = None
-
-
-def get_narrative_memory() -> NarrativeMemory:
-    """Get the global narrative memory instance."""
-    global _narrative_memory
-    if _narrative_memory is None:
-        _narrative_memory = NarrativeMemory()
-    return _narrative_memory
-
-
-def reset_narrative_memory() -> NarrativeMemory:
-    """Reset and return fresh narrative memory."""
-    global _narrative_memory
-    if _narrative_memory:
-        _narrative_memory.reset()
-    _narrative_memory = NarrativeMemory()
-    return _narrative_memory

@@ -14,15 +14,8 @@ python-dotenv>=1.0.0
 pydantic>=2.10.0
 pydantic-settings>=2.1.0
 
-# Async Support
+# HTTP Client
 httpx>=0.26.0
-aiofiles>=23.2.1
-
-# CORS Support (comes with fastapi)
-starlette>=0.35.1
-
-# JSON Handling (included in stdlib, but explicit for type hints)
-typing-extensions>=4.9.0
 
 # Authentication
 python-jose[cryptography]>=3.3.0

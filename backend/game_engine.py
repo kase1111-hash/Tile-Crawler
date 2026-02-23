@@ -10,15 +10,16 @@ import os
 import random
 from typing import Optional
 
-from world_state import get_world_state, reset_world_state, RoomData
-from narrative_memory import get_narrative_memory, reset_narrative_memory
-from inventory_state import get_inventory_state, reset_inventory_state
-from player_state import get_player_state, reset_player_state
+from world_state import WorldState, RoomData
+from narrative_memory import NarrativeMemory
+from inventory_state import InventoryState
+from player_state import PlayerState
 from llm_engine import get_llm_engine
 from database import get_repository, GameSave
 from database.converter import StateConverter
 from combat_engine import CombatEngine, CombatState, ActionResult
 from interaction_engine import InteractionEngine
+from exceptions import CombatActiveError, InvalidDirectionError, NoExitError, RoomGenerationError
 
 
 # =============================================================================
@@ -38,11 +39,17 @@ class GameEngine:
     Owns game flow: new game, movement, room generation, save/load.
     """
 
-    def __init__(self):
-        self.world = get_world_state()
-        self.narrative = get_narrative_memory()
-        self.inventory = get_inventory_state()
-        self.player = get_player_state()
+    def __init__(
+        self,
+        world: WorldState,
+        narrative: NarrativeMemory,
+        inventory: InventoryState,
+        player: PlayerState,
+    ):
+        self.world = world
+        self.narrative = narrative
+        self.inventory = inventory
+        self.player = player
         self.llm = get_llm_engine()
 
         # Load data files
@@ -159,11 +166,7 @@ class GameEngine:
     async def move(self, direction: str) -> ActionResult:
         """Move the player in a direction."""
         if self.combat and self.combat.in_combat:
-            return ActionResult(
-                success=False,
-                message="Cannot move while in combat!",
-                narrative="You must defeat the enemy or flee before moving on."
-            )
+            raise CombatActiveError("Cannot move while in combat.")
 
         # Get current position and room
         x, y, z = self.world.current_position
@@ -180,19 +183,11 @@ class GameEngine:
         }
 
         if direction not in direction_map:
-            return ActionResult(
-                success=False,
-                message=f"Invalid direction: {direction}",
-                narrative="You're not sure which way that is."
-            )
+            raise InvalidDirectionError(f"Invalid direction: {direction}")
 
         # Check if exit exists
         if current_room and not current_room.exits.get(direction, False):
-            return ActionResult(
-                success=False,
-                message=f"Cannot go {direction} - no exit.",
-                narrative="A solid wall blocks your path in that direction."
-            )
+            raise NoExitError(f"Cannot go {direction} — no exit in that direction.")
 
         # Calculate new coordinates
         dx, dy, dz = direction_map[direction]
@@ -204,11 +199,7 @@ class GameEngine:
             exits = self._determine_exits(new_x, new_y, new_z, direction)
             room = await self._generate_room(new_x, new_y, new_z, biome, exits)
             if not room:
-                return ActionResult(
-                    success=False,
-                    message="Failed to generate room",
-                    narrative="Something blocks your path. The dungeon itself seems to resist."
-                )
+                raise RoomGenerationError("Failed to generate room.")
 
         # Move player
         self.world.update_position(new_x, new_y, new_z)
@@ -536,9 +527,6 @@ from session_manager import get_session_manager, GameSession
 _session_engines: dict[str, "GameEngine"] = {}
 _engines_lock = None  # Will be initialized on first use
 
-# Legacy global instance for backwards compatibility
-_game_engine: Optional[GameEngine] = None
-
 
 def _get_engines_lock():
     """Get or create the engines lock."""
@@ -560,13 +548,12 @@ async def get_game_engine_for_session(session_id: str) -> "GameEngine":
             session_mgr = get_session_manager()
             session = await session_mgr.get_session(session_id)
 
-            engine = GameEngine()
-            engine.world = session.world
-            engine.narrative = session.narrative
-            engine.inventory = session.inventory
-            engine.player = session.player
-            engine._rebind_sub_engines()
-
+            engine = GameEngine(
+                world=session.world,
+                narrative=session.narrative,
+                inventory=session.inventory,
+                player=session.player,
+            )
             _session_engines[session_id] = engine
 
         return _session_engines[session_id]
@@ -579,38 +566,14 @@ async def reset_game_engine_for_session(session_id: str) -> "GameEngine":
         session_mgr = get_session_manager()
         session = await session_mgr.create_new_session(session_id)
 
-        engine = GameEngine()
-        engine.world = session.world
-        engine.narrative = session.narrative
-        engine.inventory = session.inventory
-        engine.player = session.player
-        engine._rebind_sub_engines()
-
+        engine = GameEngine(
+            world=session.world,
+            narrative=session.narrative,
+            inventory=session.inventory,
+            player=session.player,
+        )
         _session_engines[session_id] = engine
         return engine
-
-
-def get_game_engine() -> GameEngine:
-    """
-    Get the global game engine instance.
-
-    DEPRECATED: Use get_game_engine_for_session() for multi-user support.
-    """
-    global _game_engine
-    if _game_engine is None:
-        _game_engine = GameEngine()
-    return _game_engine
-
-
-def reset_game_engine() -> GameEngine:
-    """
-    Reset and return fresh game engine.
-
-    DEPRECATED: Use reset_game_engine_for_session() for multi-user support.
-    """
-    global _game_engine
-    _game_engine = GameEngine()
-    return _game_engine
 
 
 def clear_session_engine(session_id: str) -> None:

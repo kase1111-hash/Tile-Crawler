@@ -15,6 +15,7 @@ from world_state import WorldState
 from inventory_state import InventoryState
 from llm_engine import LLMEngine
 from combat_engine import CombatEngine, ActionResult
+from exceptions import CombatActiveError, ItemNotFoundError
 
 
 class InteractionEngine:
@@ -43,11 +44,7 @@ class InteractionEngine:
     async def take_item(self, item_id: str) -> ActionResult:
         """Pick up an item from the current room."""
         if self.combat_engine.combat and self.combat_engine.combat.in_combat:
-            return ActionResult(
-                success=False,
-                message="Cannot pick up items during combat!",
-                narrative="Focus on the battle at hand!"
-            )
+            raise CombatActiveError("Cannot pick up items during combat.")
 
         room = self.world.get_current_room()
         if not room:
@@ -65,11 +62,7 @@ class InteractionEngine:
                 break
 
         if not item_found:
-            return ActionResult(
-                success=False,
-                message=f"Item '{item_id}' not found in this room",
-                narrative="You don't see that item here."
-            )
+            raise ItemNotFoundError(f"Item '{item_id}' not found in this room.")
 
         # Get item data
         item_template = self.item_data.get(item_id, {})
@@ -211,11 +204,7 @@ class InteractionEngine:
     async def talk(self, player_input: str = "") -> ActionResult:
         """Talk to an NPC in the current room."""
         if self.combat_engine.combat and self.combat_engine.combat.in_combat:
-            return ActionResult(
-                success=False,
-                message="Cannot talk during combat!",
-                narrative="Now is not the time for conversation!"
-            )
+            raise CombatActiveError("Cannot talk during combat.")
 
         room = self.world.get_current_room()
         if not room or not room.npcs:
@@ -307,11 +296,7 @@ class InteractionEngine:
             )
 
         if self.combat_engine.combat and self.combat_engine.combat.in_combat:
-            return ActionResult(
-                success=False,
-                message="Cannot rest during combat!",
-                narrative="The enemy won't let you rest!"
-            )
+            raise CombatActiveError("Cannot rest during combat.")
 
         rest_msg = self.player.full_rest()
 
