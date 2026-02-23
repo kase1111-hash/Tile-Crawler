@@ -2,10 +2,10 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, Request
 
 from auth import User
-from dependencies import get_optional_user
+from dependencies import get_optional_user, limiter, RATE_LIMIT_GAME
 from game_engine import get_game_engine_for_session
 from session_manager import get_session_id_for_user
 from schemas import TalkRequest, ActionResponse
@@ -25,27 +25,26 @@ The LLM generates contextual dialogue responses based on:
 - Previous interactions
 - Player's message content"""
 )
+@limiter.limit(RATE_LIMIT_GAME)
 async def talk(
+    request: Request,
     talk_request: TalkRequest,
     current_user: Optional[User] = Depends(get_optional_user)
 ):
     """Talk to an NPC in the current room."""
-    try:
-        session_id = get_session_id_for_user(
-            current_user.id if current_user else None
-        )
-        engine = await get_game_engine_for_session(session_id)
-        result = await engine.talk(talk_request.message)
+    session_id = get_session_id_for_user(
+        current_user.id if current_user else None
+    )
+    engine = await get_game_engine_for_session(session_id)
+    result = await engine.talk(talk_request.message)
 
-        return ActionResponse(
-            success=result.success,
-            message=result.message,
-            narrative=result.narrative,
-            state=engine.get_game_state(),
-            dialogue=result.dialogue_data
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ActionResponse(
+        success=result.success,
+        message=result.message,
+        narrative=result.narrative,
+        state=engine.get_game_state(),
+        dialogue=result.dialogue_data
+    )
 
 
 @router.post(
@@ -58,20 +57,18 @@ async def talk(
 - Must be in a safe room (no enemies present)
 - Cannot rest during combat"""
 )
-async def rest(current_user: Optional[User] = Depends(get_optional_user)):
+@limiter.limit(RATE_LIMIT_GAME)
+async def rest(request: Request, current_user: Optional[User] = Depends(get_optional_user)):
     """Rest to recover HP and mana (only in safe rooms)."""
-    try:
-        session_id = get_session_id_for_user(
-            current_user.id if current_user else None
-        )
-        engine = await get_game_engine_for_session(session_id)
-        result = await engine.rest()
+    session_id = get_session_id_for_user(
+        current_user.id if current_user else None
+    )
+    engine = await get_game_engine_for_session(session_id)
+    result = await engine.rest()
 
-        return ActionResponse(
-            success=result.success,
-            message=result.message,
-            narrative=result.narrative,
-            state=engine.get_game_state()
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ActionResponse(
+        success=result.success,
+        message=result.message,
+        narrative=result.narrative,
+        state=engine.get_game_state()
+    )

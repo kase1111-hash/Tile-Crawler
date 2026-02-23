@@ -4,17 +4,22 @@ Tile-Crawler Backend API
 FastAPI application providing endpoints for the dungeon crawler game.
 """
 
+import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from dependencies import AUTH_ENABLED, WEBSOCKET_ENABLED, limiter
+from exceptions import TileCrawlerError
 from llm_engine import get_llm_engine
 from routers import health, game, combat, inventory, interaction
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -66,6 +71,26 @@ app = FastAPI(
 # Rate limiter (auth endpoints)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# Game-specific exception handler — returns 400 with structured error
+@app.exception_handler(TileCrawlerError)
+async def game_error_handler(request: Request, exc: TileCrawlerError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc), "error_type": type(exc).__name__},
+    )
+
+
+# Catch-all — log the real error, return a sanitized message
+@app.exception_handler(Exception)
+async def generic_error_handler(request: Request, exc: Exception):
+    logger.error("Unhandled error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal error occurred"},
+    )
+
 
 # CORS
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")

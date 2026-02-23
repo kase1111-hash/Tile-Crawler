@@ -19,6 +19,7 @@ from database import get_repository, GameSave
 from database.converter import StateConverter
 from combat_engine import CombatEngine, CombatState, ActionResult
 from interaction_engine import InteractionEngine
+from exceptions import CombatActiveError, InvalidDirectionError, NoExitError, RoomGenerationError
 
 
 # =============================================================================
@@ -159,11 +160,7 @@ class GameEngine:
     async def move(self, direction: str) -> ActionResult:
         """Move the player in a direction."""
         if self.combat and self.combat.in_combat:
-            return ActionResult(
-                success=False,
-                message="Cannot move while in combat!",
-                narrative="You must defeat the enemy or flee before moving on."
-            )
+            raise CombatActiveError("Cannot move while in combat.")
 
         # Get current position and room
         x, y, z = self.world.current_position
@@ -180,19 +177,11 @@ class GameEngine:
         }
 
         if direction not in direction_map:
-            return ActionResult(
-                success=False,
-                message=f"Invalid direction: {direction}",
-                narrative="You're not sure which way that is."
-            )
+            raise InvalidDirectionError(f"Invalid direction: {direction}")
 
         # Check if exit exists
         if current_room and not current_room.exits.get(direction, False):
-            return ActionResult(
-                success=False,
-                message=f"Cannot go {direction} - no exit.",
-                narrative="A solid wall blocks your path in that direction."
-            )
+            raise NoExitError(f"Cannot go {direction} — no exit in that direction.")
 
         # Calculate new coordinates
         dx, dy, dz = direction_map[direction]
@@ -204,11 +193,7 @@ class GameEngine:
             exits = self._determine_exits(new_x, new_y, new_z, direction)
             room = await self._generate_room(new_x, new_y, new_z, biome, exits)
             if not room:
-                return ActionResult(
-                    success=False,
-                    message="Failed to generate room",
-                    narrative="Something blocks your path. The dungeon itself seems to resist."
-                )
+                raise RoomGenerationError("Failed to generate room.")
 
         # Move player
         self.world.update_position(new_x, new_y, new_z)

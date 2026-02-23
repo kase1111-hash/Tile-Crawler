@@ -111,30 +111,25 @@ async def delete_save(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a saved game (requires authentication)."""
-    try:
-        session_id = get_session_id_for_user(current_user.id)
-        engine = await get_game_engine_for_session(session_id)
+    session_id = get_session_id_for_user(current_user.id)
+    engine = await get_game_engine_for_session(session_id)
 
-        from database import get_repository
-        repo = get_repository()
-        save = repo.load_game(save_id)
+    from database import get_repository
+    repo = get_repository()
+    save = repo.load_game(save_id)
 
-        if save is None:
-            raise HTTPException(status_code=404, detail="Save not found")
+    if save is None:
+        raise HTTPException(status_code=404, detail="Save not found")
 
-        expected_player_id = f"user_{current_user.id}"
-        if save.player_id != expected_player_id:
-            raise HTTPException(
-                status_code=403,
-                detail="You don't have permission to delete this save"
-            )
+    expected_player_id = f"user_{current_user.id}"
+    if save.player_id != expected_player_id:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to delete this save"
+        )
 
-        success = engine.delete_save(save_id)
-        return {
-            "success": success,
-            "message": "Save deleted" if success else "Save not found"
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    success = engine.delete_save(save_id)
+    return {
+        "success": success,
+        "message": "Save deleted" if success else "Save not found"
+    }

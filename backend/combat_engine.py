@@ -14,6 +14,7 @@ from narrative_memory import NarrativeMemory
 from world_state import WorldState
 from inventory_state import InventoryState
 from llm_engine import LLMEngine
+from exceptions import NotInCombatError
 
 
 # =============================================================================
@@ -90,11 +91,7 @@ class CombatEngine:
     async def attack(self) -> ActionResult:
         """Attack the current enemy."""
         if not self.combat or not self.combat.in_combat:
-            return ActionResult(
-                success=False,
-                message="Not in combat!",
-                narrative="There is nothing to attack here."
-            )
+            raise NotInCombatError("Not in combat — there is nothing to attack here.")
 
         # Calculate player damage (base + status effects + equipment)
         equipment_stats = self.inventory.get_equipped_stats()
@@ -247,11 +244,7 @@ class CombatEngine:
     async def flee(self) -> ActionResult:
         """Attempt to flee from combat."""
         if not self.combat or not self.combat.in_combat:
-            return ActionResult(
-                success=False,
-                message="Not in combat!",
-                narrative="There's nothing to flee from."
-            )
+            raise NotInCombatError("Not in combat — there is nothing to flee from.")
 
         # Calculate flee chance (base chance + speed bonus)
         speed_bonus = self.player.get_effective_stat("speed") * FLEE_SPEED_MODIFIER

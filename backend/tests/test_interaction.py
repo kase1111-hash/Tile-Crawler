@@ -8,6 +8,7 @@ from combat_engine import CombatEngine, CombatState
 from player_state import PlayerState, StatusEffect
 from narrative_memory import NarrativeMemory
 from world_state import WorldState, RoomData
+from exceptions import CombatActiveError, ItemNotFoundError
 from inventory_state import InventoryState
 
 
@@ -147,20 +148,16 @@ class TestTakeItem:
         engine, world = deps["engine"], deps["world"]
         _add_room_with_items(world, items=[])
 
-        result = await engine.take_item("healing_potion")
-
-        assert result.success is False
-        assert "not found" in result.message
+        with pytest.raises(ItemNotFoundError):
+            await engine.take_item("healing_potion")
 
     @pytest.mark.asyncio
     async def test_take_item_during_combat_blocked(self, deps):
         engine, combat_engine = deps["engine"], deps["combat_engine"]
         combat_engine.combat = CombatState(in_combat=True, enemy_id="goblin")
 
-        result = await engine.take_item("healing_potion")
-
-        assert result.success is False
-        assert "combat" in result.message.lower()
+        with pytest.raises(CombatActiveError):
+            await engine.take_item("healing_potion")
 
     @pytest.mark.asyncio
     async def test_take_item_no_room(self, deps):
@@ -317,10 +314,8 @@ class TestTalk:
         engine, combat_engine = deps["engine"], deps["combat_engine"]
         combat_engine.combat = CombatState(in_combat=True, enemy_id="goblin")
 
-        result = await engine.talk("Hello")
-
-        assert result.success is False
-        assert "combat" in result.message.lower()
+        with pytest.raises(CombatActiveError):
+            await engine.talk("Hello")
 
     @pytest.mark.asyncio
     async def test_talk_success(self, deps):
@@ -394,10 +389,8 @@ class TestRest:
         _add_room_with_items(world, features=["campfire"])
         combat_engine.combat = CombatState(in_combat=True, enemy_id="goblin")
 
-        result = await engine.rest()
-
-        assert result.success is False
-        assert "combat" in result.message.lower()
+        with pytest.raises(CombatActiveError):
+            await engine.rest()
 
     @pytest.mark.asyncio
     async def test_rest_with_safe_room_feature(self, deps):
