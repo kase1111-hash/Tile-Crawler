@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from dependencies import AUTH_ENABLED, WEBSOCKET_ENABLED, limiter
+from dependencies import AUTH_ENABLED, limiter
 from exceptions import TileCrawlerError
 from llm_engine import get_llm_engine
 from routers import health, game, combat, inventory, interaction
@@ -45,9 +45,6 @@ tags_metadata = [
 if AUTH_ENABLED:
     tags_metadata.insert(0, {"name": "Authentication", "description": "User registration, login, and profile management"})
 
-if WEBSOCKET_ENABLED:
-    tags_metadata.append({"name": "WebSocket", "description": "Real-time game updates via WebSocket connection"})
-
 
 # =============================================================================
 # Application Setup
@@ -59,7 +56,6 @@ async def lifespan(app: FastAPI):
     logger.info("Tile-Crawler Backend Starting...")
     logger.info("   LLM Available: %s", get_llm_engine().is_available())
     logger.info("   Auth: %s", "enabled" if AUTH_ENABLED else "disabled")
-    logger.info("   WebSocket: %s", "enabled" if WEBSOCKET_ENABLED else "disabled")
     yield
     logger.info("Tile-Crawler Backend Shutting Down...")
 
@@ -139,10 +135,6 @@ app.include_router(interaction.router)
 if AUTH_ENABLED:
     from routers import auth
     app.include_router(auth.router)
-
-if WEBSOCKET_ENABLED:
-    from routers import websocket
-    app.include_router(websocket.router)
 
 
 # =============================================================================

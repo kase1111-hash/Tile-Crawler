@@ -162,7 +162,6 @@ LLM settings are controlled via environment variables:
 | `LLM_MODEL` | `gpt-4o-mini` | Model to use |
 | `OPENAI_API_BASE` | (OpenAI default) | Override for local LLMs (e.g., Ollama) |
 | `AUTH_ENABLED` | `false` | Enable JWT authentication |
-| `WEBSOCKET_ENABLED` | `false` | Enable WebSocket endpoint |
 | `SESSION_TIMEOUT_MINUTES` | `60` | Inactive session cleanup |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins |
 
@@ -186,9 +185,10 @@ See `backend/.env.example` for the full list.
 ### Partially Implemented
 
 - [ ] Glyph registry: data model and registry exist (`backend/glyphs/`) but not integrated into the game loop
-- [ ] WebSocket: backend manager exists but no frontend client; feature-flagged off
 
 ### Planned
+
+- [ ] WebSocket real-time updates
 
 - [ ] Quest system
 - [ ] Character classes
