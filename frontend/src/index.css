@@ -236,6 +236,49 @@ body {
   margin: 4px 0;
 }
 
+.stairs-dir {
+  font-size: 13px;
+  margin: 4px 0;
+  color: #facc15;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+}
+
+.hint-stairs {
+  color: #facc15;
+}
+
+/* Minimap */
+.minimap-block {
+  margin-top: 8px;
+}
+
+.minimap {
+  display: inline-block;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.minimap-row {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  line-height: 1.15;
+  letter-spacing: 6px;
+  white-space: pre;
+}
+
+.mm-player {
+  color: var(--color-accent);
+  font-weight: bold;
+  text-shadow: 0 0 8px var(--color-accent);
+}
+
+.mm-room { color: var(--color-dim); }
+.mm-stairs { color: #facc15; }
+.mm-enemy { color: #f87171; }
+.mm-npc { color: #4ade80; }
+
 /* Bottom HUD bar */
 .hud-bottom {
   position: absolute;
@@ -285,6 +328,14 @@ body {
   text-shadow: 0 0 10px #f87171;
 }
 
+.combat-turn {
+  color: var(--color-dim);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
 .combat-enemy {
   color: #ff6b6b;
   font-size: 16px;
@@ -293,7 +344,26 @@ body {
 
 .combat-hp {
   color: var(--color-dim);
+  margin-bottom: 8px;
+}
+
+.enemy-bar {
+  color: #f87171;
+  font-family: monospace;
+}
+
+.combat-player-hp {
+  color: var(--color-dim);
   margin-bottom: 16px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.combat-you {
+  color: #4ade80;
+  font-size: 11px;
+  letter-spacing: 2px;
+  margin-right: 8px;
 }
 
 .combat-actions {
@@ -306,6 +376,58 @@ body {
   color: #4ade80;
   padding: 4px 12px;
   border: 1px solid #4ade80;
+}
+
+.action-item {
+  color: #22d3ee;
+  border-color: #22d3ee;
+}
+
+/* Death overlay */
+.death-box {
+  background: rgba(15, 5, 5, 0.97);
+  border: 2px solid #7f1d1d;
+  padding: 32px 48px;
+  min-width: 380px;
+  max-width: 540px;
+  text-align: center;
+  animation: death-fade 0.6s ease-out;
+}
+
+@keyframes death-fade {
+  from { opacity: 0; transform: scale(1.05); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.death-title {
+  color: #dc2626;
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 6px;
+  margin-bottom: 16px;
+  text-shadow: 0 0 20px rgba(220, 38, 38, 0.8);
+}
+
+.death-cause {
+  color: #f87171;
+  margin-bottom: 12px;
+}
+
+.death-narrative {
+  color: var(--color-text);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.death-dismiss {
+  color: var(--color-dim);
+  font-size: 12px;
+}
+
+.inv-combat-warning {
+  color: #f87171;
+  margin-top: 8px;
 }
 
 /* NPC indicator */

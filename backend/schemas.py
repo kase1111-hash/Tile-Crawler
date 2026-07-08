@@ -110,6 +110,7 @@ class ActionResponse(BaseModel):
     state: Optional[dict] = Field(default=None, description="Full game state snapshot")
     combat: Optional[dict] = Field(default=None, description="Combat state if in battle")
     dialogue: Optional[dict] = Field(default=None, description="NPC dialogue data if talking")
+    defeat: bool = Field(default=False, description="True when the player died and respawned as a result of this action")
 
 
 class GameStateResponse(BaseModel):
@@ -131,6 +132,7 @@ class GameStateResponse(BaseModel):
     room: dict = Field(description="Current room data including map, enemies, items")
     inventory: list[dict] = Field(description="List of items in player's inventory")
     gold: int = Field(description="Amount of gold the player has")
+    explored: list[dict] = Field(default_factory=list, description="Visited rooms on the current floor, for the minimap")
     combat: Optional[dict] = Field(default=None, description="Combat state if currently in battle")
     narrative: dict = Field(description="Narrative context and recent events")
     stats: dict = Field(description="Game statistics (rooms explored, enemies defeated, etc.)")

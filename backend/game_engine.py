@@ -398,6 +398,7 @@ class GameEngine:
             },
             "inventory": self.inventory.get_inventory_list(),
             "gold": self.inventory.gold,
+            "explored": self._get_explored_floor(),
             "combat": self.combat.model_dump() if self.combat and self.combat.in_combat else None,
             "narrative": {
                 "recent_events": self.narrative.get_recent_events_text(5),
@@ -410,6 +411,27 @@ class GameEngine:
                 "deaths": self.player.deaths
             }
         }
+
+    def _get_explored_floor(self) -> list[dict]:
+        """Minimap data: rooms the player has visited on the current floor.
+
+        Prefetch generates rooms the player hasn't entered yet, so filter on
+        visited to avoid revealing unexplored areas.
+        """
+        _, _, z = self.world.current_position
+        return [
+            {
+                "x": room.x,
+                "y": room.y,
+                "cleared": room.cleared,
+                "has_enemies": len(room.enemies) > 0,
+                "has_npcs": len(room.npcs) > 0,
+                "stairs_up": bool(room.exits.get("up")),
+                "stairs_down": bool(room.exits.get("down")),
+            }
+            for room in self.world.rooms.values()
+            if room.z == z and room.visited
+        ]
 
     def _save_all(self) -> None:
         """Save all game state to JSON files (legacy method)."""

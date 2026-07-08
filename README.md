@@ -98,16 +98,27 @@ tile-crawler/
 
 ### Controls
 
-**Movement:**
-- **NORTH** - Move up
-- **SOUTH** - Move down
-- **EAST** - Move right
-- **WEST** - Move left
+**Movement (first-person):**
+- **W / S** - Move forward / back through open exits
+- **A / D** - Turn left / right
+- **< / >** - Take stairs up / down (shown in the EXITS panel when present)
 
 **Actions:**
-- **TALK** - Speak with NPCs in your current location
-- **TAKE** - Pick up items you find
-- **USE** - Utilize items from your inventory
+- **T** - Speak with NPCs in your current location
+- **G** or **1-9** - Pick up items you find
+- **I** - Open inventory (works mid-combat, but using an item costs your turn)
+- **R** - Rest to recover
+- **Q** - Save
+
+**Combat:**
+- **A** - Attack
+- **F** - Flee
+- **I** - Use an item (the enemy gets a free strike while you're occupied)
+
+The HUD shows your stats, the exits from the current room, and a minimap
+of every room you've visited on the current floor (`@` you, `&` enemies,
+`☺` NPC, `>` stairs down, `<` stairs up). Dying respawns you at the
+dungeon entrance with half HP and costs a quarter of your gold.
 
 ### Gameplay Loop
 

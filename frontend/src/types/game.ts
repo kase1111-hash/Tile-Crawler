@@ -80,12 +80,23 @@ export interface DialogueData {
   trade_available: boolean;
 }
 
+export interface ExploredRoom {
+  x: number;
+  y: number;
+  cleared: boolean;
+  has_enemies: boolean;
+  has_npcs: boolean;
+  stairs_up: boolean;
+  stairs_down: boolean;
+}
+
 export interface GameState {
   player: PlayerStats;
   position: number[];
   room: RoomState;
   inventory: InventoryItem[];
   gold: number;
+  explored: ExploredRoom[];
   combat: CombatState | null;
   narrative: NarrativeState;
   stats: GameStats;
@@ -99,6 +110,7 @@ export interface ActionResponse {
   state?: GameState;
   combat?: CombatState;
   dialogue?: DialogueData;
+  defeat?: boolean;
 }
 
 export type Direction = 'north' | 'south' | 'east' | 'west' | 'up' | 'down';

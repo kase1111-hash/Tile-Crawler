@@ -27,6 +27,13 @@ test.describe('Game Start', () => {
     await expect(page.locator('.exit-dir')).toHaveCount(4);
   });
 
+  test('should display the minimap with the player marker', async ({ page }) => {
+    await startGame(page);
+    await expect(page.locator('.minimap')).toBeVisible();
+    await expect(page.locator('.minimap .mm-player')).toHaveText('@');
+    await expect(page.locator('.minimap-block .block-title')).toContainText(/FLOOR \d+/);
+  });
+
   test('should display room description or narrative', async ({ page }) => {
     await startGame(page);
     const message = page.locator('.message-text');

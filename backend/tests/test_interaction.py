@@ -295,6 +295,70 @@ class TestUseItemEffects:
 
         assert result.success is False
 
+    @pytest.mark.asyncio
+    async def test_use_item_in_combat_costs_a_turn(self, deps):
+        """The enemy gets a free attack when you drink a potion mid-fight."""
+        engine, combat_engine, player, inventory = (
+            deps["engine"], deps["combat_engine"], deps["player"], deps["inventory"]
+        )
+        combat_engine.combat = CombatState(
+            in_combat=True, enemy_id="goblin", enemy_name="Goblin",
+            enemy_hp=15, enemy_max_hp=15, enemy_attack=8, turn=1
+        )
+        player.stats.current_hp = 50
+        self._give_item(inventory, deps["engine"].item_data, "healing_potion")
+        _add_room_with_items(deps["world"])
+
+        result = await engine.use_item("healing_potion")
+
+        assert result.success is True
+        # Healed 30 then took the counterattack, so HP < 80
+        assert player.stats.current_hp < 80
+        assert combat_engine.combat.turn == 2
+        assert result.combat_data is not None
+        assert "strikes" in result.narrative.lower()
+
+    @pytest.mark.asyncio
+    async def test_use_item_in_combat_counterattack_can_defeat(self, deps):
+        """A lethal counterattack resolves as a normal defeat (respawn)."""
+        engine, combat_engine, player, inventory = (
+            deps["engine"], deps["combat_engine"], deps["player"], deps["inventory"]
+        )
+        combat_engine.combat = CombatState(
+            in_combat=True, enemy_id="goblin", enemy_name="Goblin",
+            enemy_hp=15, enemy_max_hp=15, enemy_attack=1000, turn=1
+        )
+        player.stats.current_hp = 1
+        self._give_item(inventory, deps["engine"].item_data, "healing_potion")
+        _add_room_with_items(deps["world"])
+
+        result = await engine.use_item("healing_potion")
+
+        assert result.success is False
+        assert result.state_changes.get("defeat") is True
+        assert combat_engine.combat is None
+        assert player.stats.current_hp == player.stats.max_hp // 2  # respawned
+
+    @pytest.mark.asyncio
+    async def test_escape_item_in_combat_avoids_counterattack(self, deps):
+        """Ending combat with a smoke bomb must not grant the enemy a swing."""
+        engine, combat_engine, player, inventory = (
+            deps["engine"], deps["combat_engine"], deps["player"], deps["inventory"]
+        )
+        combat_engine.combat = CombatState(
+            in_combat=True, enemy_id="goblin", enemy_name="Goblin",
+            enemy_hp=15, enemy_max_hp=15, enemy_attack=1000, turn=1
+        )
+        hp_before = player.stats.current_hp
+        self._give_item(inventory, deps["engine"].item_data, "smoke_bomb")
+        _add_room_with_items(deps["world"])
+
+        result = await engine.use_item("smoke_bomb")
+
+        assert result.success is True
+        assert combat_engine.combat is None
+        assert player.stats.current_hp == hp_before
+
 
 class TestTalk:
     """Tests for NPC dialogue flow."""

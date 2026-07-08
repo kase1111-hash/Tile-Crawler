@@ -4,6 +4,11 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import type { GameState, ActionResponse, Direction, DialogueData } from '../types/game';
 
+export interface DeathData {
+  message: string;
+  narrative: string;
+}
+
 interface UseGameReturn {
   // State
   gameState: GameState | null;
@@ -11,6 +16,7 @@ interface UseGameReturn {
   error: string | null;
   narrative: string;
   dialogueData: DialogueData | null;
+  deathData: DeathData | null;
 
   // Actions
   newGame: (playerName?: string) => Promise<void>;
@@ -25,6 +31,7 @@ interface UseGameReturn {
   rest: () => Promise<void>;
   clearError: () => void;
   clearDialogue: () => void;
+  clearDeath: () => void;
 }
 
 export function useGame(): UseGameReturn {
@@ -33,6 +40,7 @@ export function useGame(): UseGameReturn {
   const [error, setError] = useState<string | null>(null);
   const [narrative, setNarrative] = useState<string>('');
   const [dialogueData, setDialogueData] = useState<DialogueData | null>(null);
+  const [deathData, setDeathData] = useState<DeathData | null>(null);
   const prefetchRef = useRef<AbortController | null>(null);
 
   // Prefetch adjacent rooms in background (silent, doesn't affect UI)
@@ -60,7 +68,10 @@ export function useGame(): UseGameReturn {
     if (response.dialogue) {
       setDialogueData(response.dialogue);
     }
-    if (!response.success && response.message) {
+    if (response.defeat) {
+      // Death gets its own overlay instead of the error bar
+      setDeathData({ message: response.message, narrative: response.narrative });
+    } else if (!response.success && response.message) {
       setError(response.message);
     }
 
@@ -180,6 +191,7 @@ export function useGame(): UseGameReturn {
 
   const clearError = useCallback(() => setError(null), []);
   const clearDialogue = useCallback(() => setDialogueData(null), []);
+  const clearDeath = useCallback(() => setDeathData(null), []);
 
   // Try to load existing game on mount
   useEffect(() => {
@@ -204,6 +216,7 @@ export function useGame(): UseGameReturn {
     error,
     narrative,
     dialogueData,
+    deathData,
     newGame,
     loadGame,
     saveGame,
@@ -216,5 +229,6 @@ export function useGame(): UseGameReturn {
     rest,
     clearError,
     clearDialogue,
+    clearDeath,
   };
 }

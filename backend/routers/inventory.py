@@ -69,7 +69,8 @@ async def use_item(
         message=result.message,
         narrative=result.narrative,
         state=engine.get_game_state(),
-        combat=result.combat_data
+        combat=result.combat_data,
+        defeat=bool(result.state_changes.get("defeat"))
     )
 
 
