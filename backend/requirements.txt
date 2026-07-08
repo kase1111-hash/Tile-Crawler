@@ -20,7 +20,9 @@ httpx>=0.26.0
 # Authentication
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
-bcrypt>=4.1.2
+# bcrypt 5.x drops the internals passlib 1.7.4 relies on (hashpw rejects
+# passlib's >72-byte version probe), so hold back until passlib supports it
+bcrypt>=4.1.2,<5.0
 
 # Rate Limiting
 slowapi>=0.1.9

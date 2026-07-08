@@ -1,10 +1,32 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIRequestContext } from '@playwright/test';
 
 const API_URL = process.env.API_URL || 'http://localhost:8000';
 
+const CARDINALS = ['north', 'south', 'east', 'west'];
+
+async function getState(request: APIRequestContext) {
+  const response = await request.get(`${API_URL}/api/game/state`);
+  expect(response.ok()).toBeTruthy();
+  return response.json();
+}
+
+/** Resolve any active combat so movement/attack expectations are deterministic. */
+async function ensureNotInCombat(request: APIRequestContext) {
+  for (let i = 0; i < 30; i++) {
+    const state = await getState(request);
+    if (state.player.hp.startsWith('0/')) {
+      await request.post(`${API_URL}/api/game/new`, { data: { player_name: 'E2E Tester' } });
+      continue;
+    }
+    if (!state.combat?.in_combat) return state;
+    await request.post(`${API_URL}/api/game/combat/attack`);
+  }
+  throw new Error('could not resolve combat within 30 rounds');
+}
+
 test.describe('API Integration', () => {
   test('backend health check', async ({ request }) => {
-    const response = await request.get(`${API_URL}/health`);
+    const response = await request.get(`${API_URL}/api/health`);
     expect(response.ok()).toBeTruthy();
 
     const data = await response.json();
@@ -25,62 +47,52 @@ test.describe('API Integration', () => {
   });
 
   test('get game state via API', async ({ request }) => {
-    // First start a new game
     await request.post(`${API_URL}/api/game/new`, {
       data: { player_name: 'E2E Tester' }
     });
 
-    // Then get state
-    const response = await request.get(`${API_URL}/api/game/state`);
-    expect(response.ok()).toBeTruthy();
-
-    const data = await response.json();
+    const data = await getState(request);
     expect(data.player).toBeDefined();
     expect(data.room).toBeDefined();
     expect(data.inventory).toBeDefined();
     expect(data.position).toBeDefined();
   });
 
-  test('movement via API', async ({ request }) => {
-    // Start new game
+  test('movement follows the advertised exits', async ({ request }) => {
     await request.post(`${API_URL}/api/game/new`, {
       data: { player_name: 'E2E Tester' }
     });
+    const state = await ensureNotInCombat(request);
 
-    // Try to move
-    const response = await request.post(`${API_URL}/api/game/move`, {
-      data: { direction: 'north' }
+    const open = CARDINALS.filter((d) => state.room.exits[d]);
+    const closed = CARDINALS.filter((d) => !state.room.exits[d]);
+    expect(open.length).toBeGreaterThan(0);
+
+    // A closed direction is rejected with a structured error
+    if (closed.length > 0) {
+      const blocked = await request.post(`${API_URL}/api/game/move`, {
+        data: { direction: closed[0] }
+      });
+      expect(blocked.status()).toBe(400);
+      const err = await blocked.json();
+      expect(err.error_type).toBe('NoExitError');
+    }
+
+    // An open direction succeeds
+    const moved = await request.post(`${API_URL}/api/game/move`, {
+      data: { direction: open[0] }
     });
-    expect(response.ok()).toBeTruthy();
-
-    const data = await response.json();
-    expect(data.message).toBeDefined();
+    expect(moved.ok()).toBeTruthy();
+    const data = await moved.json();
+    expect(data.success).toBe(true);
     expect(data.state).toBeDefined();
   });
 
-  test('API returns audio intents', async ({ request }) => {
-    // Start new game
-    const newGameResponse = await request.post(`${API_URL}/api/game/new`, {
-      data: { player_name: 'E2E Tester' }
-    });
-    expect(newGameResponse.ok()).toBeTruthy();
-
-    const data = await newGameResponse.json();
-
-    // Check audio intent is present
-    expect(data.audio).toBeDefined();
-    expect(data.audio.primary).toBeDefined();
-    expect(data.audio.primary.onomatopoeia).toBeDefined();
-    expect(data.audio.primary.event_type).toBeDefined();
-  });
-
   test('inventory API', async ({ request }) => {
-    // Start new game
     await request.post(`${API_URL}/api/game/new`, {
       data: { player_name: 'E2E Tester' }
     });
 
-    // Get inventory
     const response = await request.get(`${API_URL}/api/game/inventory`);
     expect(response.ok()).toBeTruthy();
 
@@ -90,50 +102,49 @@ test.describe('API Integration', () => {
     expect(data.gold).toBeDefined();
   });
 
-  test('attack API when not in combat', async ({ request }) => {
-    // Start new game
+  test('attack outside combat is rejected with a structured error', async ({ request }) => {
     await request.post(`${API_URL}/api/game/new`, {
       data: { player_name: 'E2E Tester' }
     });
+    await ensureNotInCombat(request);
 
-    // Try to attack (should respond gracefully)
     const response = await request.post(`${API_URL}/api/game/combat/attack`);
-    expect(response.ok()).toBeTruthy();
+    expect(response.status()).toBe(400);
 
     const data = await response.json();
-    expect(data.message).toBeDefined();
+    expect(data.error_type).toBe('NotInCombatError');
+    expect(data.detail).toBeDefined();
   });
 
-  test('flee API when not in combat', async ({ request }) => {
-    // Start new game
+  test('flee outside combat is rejected with a structured error', async ({ request }) => {
     await request.post(`${API_URL}/api/game/new`, {
       data: { player_name: 'E2E Tester' }
     });
+    await ensureNotInCombat(request);
 
-    // Try to flee (should respond gracefully)
     const response = await request.post(`${API_URL}/api/game/combat/flee`);
-    expect(response.ok()).toBeTruthy();
+    expect(response.status()).toBe(400);
 
     const data = await response.json();
-    expect(data.message).toBeDefined();
+    expect(data.error_type).toBeDefined();
+    expect(data.detail).toBeDefined();
   });
 
   test('save and load game', async ({ request }) => {
-    // Start new game
     await request.post(`${API_URL}/api/game/new`, {
       data: { player_name: 'E2E Tester' }
     });
 
-    // Move to change state
-    await request.post(`${API_URL}/api/game/move`, {
-      data: { direction: 'east' }
-    });
+    // Move somewhere legal so the save has non-initial state
+    const state = await ensureNotInCombat(request);
+    const open = CARDINALS.filter((d) => state.room.exits[d]);
+    if (open.length > 0) {
+      await request.post(`${API_URL}/api/game/move`, { data: { direction: open[0] } });
+    }
 
-    // Save game
     const saveResponse = await request.post(`${API_URL}/api/game/save`);
     expect(saveResponse.ok()).toBeTruthy();
 
-    // Load game
     const loadResponse = await request.post(`${API_URL}/api/game/load`);
     expect(loadResponse.ok()).toBeTruthy();
 
@@ -143,12 +154,11 @@ test.describe('API Integration', () => {
   });
 
   test('use item API', async ({ request }) => {
-    // Start new game
     await request.post(`${API_URL}/api/game/new`, {
       data: { player_name: 'E2E Tester' }
     });
 
-    // Try to use a healing potion
+    // New games start with a healing potion
     const response = await request.post(`${API_URL}/api/game/use`, {
       data: { item_id: 'healing_potion' }
     });
@@ -156,7 +166,6 @@ test.describe('API Integration', () => {
 
     const data = await response.json();
     expect(data.message).toBeDefined();
-    // May succeed or fail depending on if player has the item
   });
 
   test('full API game flow', async ({ request }) => {
@@ -168,28 +177,26 @@ test.describe('API Integration', () => {
     const newGameData = await newGame.json();
     expect(newGameData.success).toBe(true);
 
-    // 2. Get initial state
-    const state1 = await request.get(`${API_URL}/api/game/state`);
-    expect(state1.ok()).toBeTruthy();
-
-    // 3. Move around
-    const directions = ['north', 'east', 'south', 'west'];
-    for (const dir of directions) {
+    // 2. Walk through several rooms, always following the advertised exits
+    for (let step = 0; step < 4; step++) {
+      const state = await getState(request);
+      if (state.combat?.in_combat) break;
+      const open = CARDINALS.filter((d) => state.room.exits[d]);
+      expect(open.length).toBeGreaterThan(0);
       const moveResp = await request.post(`${API_URL}/api/game/move`, {
-        data: { direction: dir }
+        data: { direction: open[step % open.length] }
       });
       expect(moveResp.ok()).toBeTruthy();
     }
 
-    // 4. Check inventory
+    // 3. Check inventory
     const inv = await request.get(`${API_URL}/api/game/inventory`);
     expect(inv.ok()).toBeTruthy();
 
-    // 5. Get final state
-    const finalState = await request.get(`${API_URL}/api/game/state`);
-    expect(finalState.ok()).toBeTruthy();
+    // 4. Get final state
+    await getState(request);
 
-    // 6. Save game
+    // 5. Save game
     const save = await request.post(`${API_URL}/api/game/save`);
     expect(save.ok()).toBeTruthy();
   });

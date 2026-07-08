@@ -1,66 +1,75 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { freshGame } from './helpers';
+
+/**
+ * Walk rooms via the API until an enemy encounter starts.
+ * Encounters are random, so this is bounded and the tests skip when
+ * the dungeon stays quiet.
+ */
+async function enterCombat(page: Page): Promise<boolean> {
+  for (let i = 0; i < 40; i++) {
+    const state = await (await page.request.get('/api/game/state')).json();
+    if (state.combat?.in_combat) return true;
+    if (state.player.hp.startsWith('0/')) {
+      await page.request.post('/api/game/new', { data: { player_name: 'E2E Fighter' } });
+      continue;
+    }
+    const open = Object.entries(state.room.exits)
+      .filter(([, isOpen]) => isOpen)
+      .map(([dir]) => dir)
+      .filter((dir) => ['north', 'south', 'east', 'west'].includes(dir));
+    if (open.length === 0) return false;
+    await page.request.post('/api/game/move', {
+      data: { direction: open[i % open.length] },
+    });
+  }
+  return false;
+}
 
 test.describe('Combat', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-
-    // Start new game
-    const newGameButton = page.locator('button:has-text("New Game"), button:has-text("Start"), [data-testid="new-game"]');
-    await newGameButton.first().click();
-
-    // Wait for game to load
-    await page.waitForTimeout(2000);
+    await freshGame(page, 'E2E Fighter');
   });
 
-  test('should have attack button available', async ({ page }) => {
-    // Attack button should exist (may be disabled if not in combat)
-    const attackButton = page.locator('button:has-text("Attack"), button:has-text("attack"), [data-testid="attack"]');
-    await expect(attackButton.first()).toBeVisible({ timeout: 10000 });
+  test('combat overlay appears with enemy info and actions', async ({ page }) => {
+    test.skip(!(await enterCombat(page)), 'no enemy encountered within the walk budget');
+    await page.reload();
+
+    const overlay = page.locator('.combat-overlay');
+    await expect(overlay).toBeVisible({ timeout: 15000 });
+    await expect(overlay.locator('.combat-title')).toContainText('COMBAT');
+    await expect(overlay.locator('.combat-enemy')).not.toHaveText('');
+    await expect(overlay.locator('.combat-hp')).toContainText(/HP: \d+\/\d+/);
+    await expect(overlay.locator('.action-btn').filter({ hasText: 'Attack' })).toBeVisible();
+    await expect(overlay.locator('.action-btn').filter({ hasText: 'Flee' })).toBeVisible();
   });
 
-  test('should have flee button available', async ({ page }) => {
-    // Flee button should exist
-    const fleeButton = page.locator('button:has-text("Flee"), button:has-text("flee"), button:has-text("Run"), [data-testid="flee"]');
-    await expect(fleeButton.first()).toBeVisible({ timeout: 10000 });
+  test('A key attacks during combat', async ({ page }) => {
+    test.skip(!(await enterCombat(page)), 'no enemy encountered within the walk budget');
+    await page.reload();
+    await expect(page.locator('.combat-overlay')).toBeVisible({ timeout: 15000 });
+
+    const attackDone = page.waitForResponse(
+      (resp) => resp.url().includes('/api/game/combat/attack') && resp.ok()
+    );
+    await page.keyboard.press('a');
+    await attackDone;
+
+    // Combat either continues (overlay + updated HP) or the enemy died
+    await expect(page.locator('.dungeon-container')).toBeVisible();
   });
 
-  test('should show combat UI when enemy present', async ({ page }) => {
-    // Move around to potentially encounter an enemy
-    for (let i = 0; i < 5; i++) {
-      await page.keyboard.press('ArrowRight');
-      await page.waitForTimeout(500);
-      await page.keyboard.press('ArrowDown');
-      await page.waitForTimeout(500);
-    }
+  test('F key attempts to flee during combat', async ({ page }) => {
+    test.skip(!(await enterCombat(page)), 'no enemy encountered within the walk budget');
+    await page.reload();
+    await expect(page.locator('.combat-overlay')).toBeVisible({ timeout: 15000 });
 
-    // Check if combat section exists (may or may not be in combat)
-    const combatSection = page.locator('[data-testid="combat"], .combat, text=/Combat|Enemy|HP:/i');
-    // This is informational - combat may or may not trigger
-    const hasCombat = await combatSection.first().isVisible().catch(() => false);
-    console.log('Combat encountered:', hasCombat);
-  });
+    const fleeDone = page.waitForResponse(
+      (resp) => resp.url().includes('/api/game/combat/flee') && resp.ok()
+    );
+    await page.keyboard.press('f');
+    await fleeDone;
 
-  test('attack button should respond when clicked', async ({ page }) => {
-    const attackButton = page.locator('button:has-text("Attack"), [data-testid="attack"]');
-
-    // Click attack (may show "not in combat" message if no enemy)
-    await attackButton.first().click();
-    await page.waitForTimeout(500);
-
-    // Should see some response
-    const response = page.locator('[data-testid="narrative"], .narrative, .message');
-    await expect(response.first()).toBeVisible();
-  });
-
-  test('flee button should respond when clicked', async ({ page }) => {
-    const fleeButton = page.locator('button:has-text("Flee"), button:has-text("Run"), [data-testid="flee"]');
-
-    // Click flee (may show "not in combat" message if no enemy)
-    await fleeButton.first().click();
-    await page.waitForTimeout(500);
-
-    // Should see some response
-    const response = page.locator('[data-testid="narrative"], .narrative, .message');
-    await expect(response.first()).toBeVisible();
+    await expect(page.locator('.dungeon-container')).toBeVisible();
   });
 });
