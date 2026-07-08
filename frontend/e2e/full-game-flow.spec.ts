@@ -1,116 +1,85 @@
 import { test, expect } from '@playwright/test';
+import { freshGame, faceOpenExit, getLocationText } from './helpers';
 
 test.describe('Full Game Flow', () => {
   test('complete game session flow', async ({ page }) => {
-    // 1. Navigate to game
-    await page.goto('/');
-    await expect(page).toHaveTitle(/Tile|Crawler|Game/i, { timeout: 10000 });
+    // 1. Fresh game loads into the HUD
+    await freshGame(page, 'Full Flow Test');
+    await expect(page).toHaveTitle(/Tile-Crawler/i);
+    await expect(page.locator('.stat-name')).toHaveText('Full Flow Test');
 
-    // 2. Start new game
-    const newGameButton = page.locator('button:has-text("New Game"), button:has-text("Start"), [data-testid="new-game"]');
-    await expect(newGameButton.first()).toBeVisible({ timeout: 10000 });
-    await newGameButton.first().click();
+    // 2. Stats are rendered
+    await expect(page.locator('.stat-bar-row', { hasText: 'HP' })).toBeVisible();
+    await expect(page.locator('.stat-gold')).toContainText(/Gold: \d+/);
 
-    // 3. Verify game loaded
-    await page.waitForTimeout(2000);
-    const gameMap = page.locator('[data-testid="game-map"], .game-map, pre');
-    await expect(gameMap.first()).toBeVisible({ timeout: 10000 });
-
-    // 4. Verify player stats visible
-    const stats = page.locator('text=/HP|Level|Health/i');
-    await expect(stats.first()).toBeVisible({ timeout: 5000 });
-
-    // 5. Verify inventory visible
-    const inventory = page.locator('text=/Inventory|Items/i');
-    await expect(inventory.first()).toBeVisible({ timeout: 5000 });
-
-    // 6. Move around the dungeon
-    await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('ArrowLeft');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('ArrowUp');
-    await page.waitForTimeout(500);
-
-    // 7. Verify game is still responsive
-    await expect(gameMap.first()).toBeVisible();
-
-    // 8. Check controls are working
-    const controls = page.locator('button:has-text("North"), button:has-text("Attack")');
-    await expect(controls.first()).toBeVisible({ timeout: 5000 });
-
-    // 9. Try saving the game (if available)
-    const saveButton = page.locator('button:has-text("Save"), [data-testid="save"]');
-    if (await saveButton.first().isVisible().catch(() => false)) {
-      await saveButton.first().click();
-      await page.waitForTimeout(500);
+    // 3. Move through an open exit
+    if (!(await page.locator('.combat-overlay').isVisible())) {
+      expect(await faceOpenExit(page)).toBe(true);
+      const before = await getLocationText(page);
+      const moveDone = page.waitForResponse(
+        (resp) => resp.url().includes('/api/game/move') && resp.ok()
+      );
+      await page.keyboard.press('w');
+      await moveDone;
+      await expect(page.locator('.hud-location')).not.toHaveText(before);
     }
 
-    // 10. Game should still be functional
-    await expect(gameMap.first()).toBeVisible();
+    // 4. Inventory opens and closes (outside combat)
+    if (!(await page.locator('.combat-overlay').isVisible())) {
+      await page.keyboard.press('i');
+      await expect(page.locator('.inventory-box')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('.inventory-box')).not.toBeVisible();
+    }
+
+    // 5. Save with Q (combat mode only listens for attack/flee keys)
+    if (!(await page.locator('.combat-overlay').isVisible())) {
+      await expect(page.locator('.loading-spinner')).not.toBeVisible();
+      const saveDone = page.waitForResponse(
+        (resp) => resp.url().includes('/api/game/save') && resp.ok()
+      );
+      await page.keyboard.press('q');
+      await saveDone;
+      await expect(page.locator('.message-text')).toContainText('Game saved');
+    }
+
+    // 6. Game is still functional
+    await expect(page.locator('.dungeon-container')).toBeVisible();
   });
 
-  test('game persists state across actions', async ({ page }) => {
-    await page.goto('/');
+  test('game state survives a page reload', async ({ page }) => {
+    await freshGame(page, 'Reload Test');
+    const location = await getLocationText(page);
 
-    // Start new game
-    const newGameButton = page.locator('button:has-text("New Game"), button:has-text("Start"), [data-testid="new-game"]');
-    await newGameButton.first().click();
-    await page.waitForTimeout(2000);
-
-    // Get initial gold value
-    const goldDisplay = page.locator('text=/Gold:\\s*\\d+|💰\\s*\\d+|\\d+\\s*gold/i');
-    const initialGoldText = await goldDisplay.first().textContent().catch(() => '');
-
-    // Perform some actions
-    await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(500);
-
-    // Gold should still be displayed
-    await expect(goldDisplay.first()).toBeVisible();
+    await page.reload();
+    await expect(page.locator('.dungeon-container')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.stat-name')).toHaveText('Reload Test');
+    expect(await getLocationText(page)).toBe(location);
   });
 
   test('game handles rapid inputs gracefully', async ({ page }) => {
-    await page.goto('/');
+    await freshGame(page);
 
-    // Start game
-    const newGameButton = page.locator('button:has-text("New Game"), button:has-text("Start"), [data-testid="new-game"]');
-    await newGameButton.first().click();
-    await page.waitForTimeout(2000);
-
-    // Rapid inputs
     for (let i = 0; i < 10; i++) {
-      await page.keyboard.press('ArrowUp');
-      await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('a');
+      await page.keyboard.press('w');
     }
-
-    // Wait for processing
     await page.waitForTimeout(1000);
 
-    // Game should still be functional
-    const gameMap = page.locator('[data-testid="game-map"], .game-map, pre');
-    await expect(gameMap.first()).toBeVisible();
+    await expect(page.locator('.dungeon-container')).toBeVisible();
+    await expect(page.locator('.compass-dir')).toHaveText(/NORTH|SOUTH|EAST|WEST/);
   });
 
-  test('narrative updates with player actions', async ({ page }) => {
-    await page.goto('/');
+  test('resting updates the narrative', async ({ page }) => {
+    await freshGame(page);
+    test.skip(await page.locator('.combat-overlay').isVisible(), 'combat started in the first room');
 
-    // Start game
-    const newGameButton = page.locator('button:has-text("New Game"), button:has-text("Start"), [data-testid="new-game"]');
-    await newGameButton.first().click();
-    await page.waitForTimeout(2000);
+    const restDone = page.waitForResponse(
+      (resp) => resp.url().includes('/api/game/rest') && resp.ok()
+    );
+    await page.keyboard.press('r');
+    await restDone;
 
-    // Get initial narrative
-    const narrative = page.locator('[data-testid="narrative"], .narrative, [class*="description"]');
-    const initialText = await narrative.first().textContent().catch(() => '');
-
-    // Make a move
-    await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(1000);
-
-    // Narrative should exist (may or may not change based on room)
-    await expect(narrative.first()).toBeVisible();
+    await expect(page.locator('.message-text')).not.toHaveText('');
   });
 });

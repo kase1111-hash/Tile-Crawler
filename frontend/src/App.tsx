@@ -201,7 +201,8 @@ function App() {
     attack,
     flee,
     takeItem,
-    useItem,
+    // Aliased so the "use" prefix doesn't trip react-hooks/rules-of-hooks
+    useItem: consumeItem,
     talk,
     rest,
     clearDialogue,
@@ -238,7 +239,7 @@ function App() {
         } else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'j') {
           setSelectedItem(i => Math.min(items.length - 1, i + 1));
         } else if (e.key === 'Enter' || e.key.toLowerCase() === 'u') {
-          if (items[selectedItem]) useItem(items[selectedItem].id);
+          if (items[selectedItem]) consumeItem(items[selectedItem].id);
         }
         return;
       }
@@ -294,7 +295,7 @@ function App() {
         if (roomItems[num - 1]) takeItem(roomItems[num - 1].id);
       }
     },
-    [gameState, isLoading, dialogueData, selectedItem, showInventory, facing, move, attack, flee, rest, talk, takeItem, useItem, clearDialogue, saveGame]
+    [gameState, isLoading, dialogueData, selectedItem, showInventory, facing, move, attack, flee, rest, talk, takeItem, consumeItem, clearDialogue, saveGame]
   );
 
   useEffect(() => {
@@ -348,8 +349,9 @@ function App() {
   const roomHasEnemies = gameState.room.enemies.length > 0 || inCombat;
   const roomHasNPCs = gameState.room.npcs.length > 0;
   const roomHasItems = gameState.room.items.length > 0;
+  // Backend sends status_effects as effect names, not ids (see get_stats_summary)
   const hasTorchBuff = gameState.player.status_effects?.some(
-    (e: { id: string }) => e.id === 'light_source'
+    (e) => e === 'Torch Light'
   ) ?? false;
   const view3D = render3DView(
     canGoForward, canGoLeft, canGoRight, viewWidth, viewHeight,

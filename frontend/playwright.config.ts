@@ -6,10 +6,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  // The backend keeps a single shared session for anonymous players, so
+  // concurrent tests would stomp on each other's game state
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? 'github' : 'html',
 
   use: {
@@ -46,15 +48,15 @@ export default defineConfig({
   webServer: [
     {
       command: 'cd ../backend && uvicorn main:app --host 0.0.0.0 --port 8000',
-      url: 'http://localhost:8000/health',
+      url: 'http://localhost:8000/api/health',
       reuseExistingServer: !process.env.CI,
-      timeout: 30000,
+      timeout: 60000,
     },
     {
       command: 'npm run dev',
       url: 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,
-      timeout: 30000,
+      timeout: 60000,
     },
   ],
 });

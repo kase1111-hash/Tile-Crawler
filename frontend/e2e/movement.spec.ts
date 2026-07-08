@@ -1,86 +1,76 @@
 import { test, expect } from '@playwright/test';
+import { freshGame, faceOpenExit, getExitLabels, getLocationText } from './helpers';
 
 test.describe('Movement', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-
-    // Start new game
-    const newGameButton = page.locator('button:has-text("New Game"), button:has-text("Start"), [data-testid="new-game"]');
-    await newGameButton.first().click();
-
-    // Wait for game to load
-    await page.waitForTimeout(2000);
+    await freshGame(page);
   });
 
-  test('should have movement controls', async ({ page }) => {
-    // Check for directional buttons or controls
-    const controls = page.locator('button:has-text("North"), button:has-text("N"), [data-testid*="north"], [aria-label*="north"]');
-    await expect(controls.first()).toBeVisible({ timeout: 10000 });
+  test('compass starts facing north', async ({ page }) => {
+    await expect(page.locator('.compass-dir')).toHaveText('NORTH');
   });
 
-  test('should move north with button click', async ({ page }) => {
-    // Get initial position or state
-    const initialContent = await page.locator('[data-testid="game-map"], .game-map, pre').first().textContent();
+  test('A and D turn the player without moving', async ({ page }) => {
+    const location = await getLocationText(page);
 
-    // Click north button
-    const northButton = page.locator('button:has-text("North"), button:has-text("N"), [data-testid*="north"]');
-    await northButton.first().click();
+    await page.keyboard.press('a');
+    await expect(page.locator('.compass-dir')).toHaveText('WEST');
 
-    // Wait for response
-    await page.waitForTimeout(1000);
+    await page.keyboard.press('d');
+    await page.keyboard.press('d');
+    await expect(page.locator('.compass-dir')).toHaveText('EAST');
 
-    // Game state should update (narrative or map change)
-    const narrative = page.locator('[data-testid="narrative"], .narrative, [class*="description"]');
-    await expect(narrative.first()).toBeVisible();
+    // Turning is client-side only; position must not change
+    expect(await getLocationText(page)).toBe(location);
   });
 
-  test('should move with keyboard arrow keys', async ({ page }) => {
-    // Press arrow key
-    await page.keyboard.press('ArrowUp');
+  test('W moves forward through an open exit', async ({ page }) => {
+    expect(await faceOpenExit(page)).toBe(true);
+    const before = await getLocationText(page);
 
-    // Wait for response
-    await page.waitForTimeout(1000);
-
-    // Check that game responded
-    const narrative = page.locator('[data-testid="narrative"], .narrative');
-    await expect(narrative.first()).toBeVisible();
-  });
-
-  test('should move with WASD keys', async ({ page }) => {
-    // Press W key
+    const moveDone = page.waitForResponse(
+      (resp) => resp.url().includes('/api/game/move') && resp.ok()
+    );
     await page.keyboard.press('w');
+    await moveDone;
 
-    // Wait for response
-    await page.waitForTimeout(1000);
-
-    // Check that game responded
-    const gameArea = page.locator('[data-testid="game-map"], .game-map, pre');
-    await expect(gameArea.first()).toBeVisible();
+    await expect(page.locator('.hud-location')).not.toHaveText(before);
   });
 
-  test('should show blocked message when hitting wall', async ({ page }) => {
-    // Try to move in same direction multiple times to hit a wall
-    for (let i = 0; i < 10; i++) {
-      await page.keyboard.press('ArrowUp');
-      await page.waitForTimeout(300);
+  test('W against a blocked exit does not move', async ({ page }) => {
+    // Find a facing whose forward exit is blocked (skip if the room opens everywhere)
+    let blocked = false;
+    for (let i = 0; i < 4; i++) {
+      const { w } = await getExitLabels(page);
+      if (w.includes('Blocked')) {
+        blocked = true;
+        break;
+      }
+      await page.keyboard.press('a');
     }
+    test.skip(!blocked, 'room has all four exits open');
 
-    // Should eventually see blocked message or error
-    // The game should handle this gracefully
-    const gameArea = page.locator('[data-testid="game-map"], .game-map, pre');
-    await expect(gameArea.first()).toBeVisible();
+    const before = await getLocationText(page);
+    await page.keyboard.press('w');
+    // The app suppresses the request entirely for a blocked direction
+    await page.waitForTimeout(500);
+    expect(await getLocationText(page)).toBe(before);
   });
 
-  test('should update map display after movement', async ({ page }) => {
-    // Get map content before
-    const mapBefore = await page.locator('[data-testid="game-map"], .game-map, pre').first().textContent();
+  test('exits panel matches movement outcome across several rooms', async ({ page }) => {
+    for (let step = 0; step < 3; step++) {
+      // Combat can start when entering a room; movement is locked then
+      if (await page.locator('.combat-overlay').isVisible()) break;
+      expect(await faceOpenExit(page)).toBe(true);
+      const before = await getLocationText(page);
 
-    // Try to move to a new room
-    await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(1500);
+      const moveDone = page.waitForResponse(
+        (resp) => resp.url().includes('/api/game/move') && resp.ok()
+      );
+      await page.keyboard.press('w');
+      await moveDone;
 
-    // Either map changes or narrative indicates blocked
-    const narrativeOrMap = page.locator('[data-testid="narrative"], .narrative, [data-testid="game-map"]');
-    await expect(narrativeOrMap.first()).toBeVisible();
+      await expect(page.locator('.hud-location')).not.toHaveText(before);
+    }
   });
 });
