@@ -185,6 +185,22 @@ class InteractionEngine:
             self.player.add_status_effect(light_buff)
             effect_msg = f"The {effect_data['item_name'].lower()} flickers to life, casting warm light around you."
 
+        # Using an item mid-combat costs the turn: the enemy gets a free swing
+        # (unless the item just ended the fight, e.g. a smoke bomb)
+        combat = self.combat_engine.combat
+        if combat and combat.in_combat:
+            equip_def = self.inventory.get_equipped_stats().get("defense", 0)
+            taken, is_dead, damage_msg = self.player.take_damage(
+                combat.enemy_attack, combat.enemy_name, equip_def
+            )
+            effect_msg = (
+                f"{effect_msg} The {combat.enemy_name} strikes while you're "
+                f"occupied! {damage_msg}"
+            ).strip()
+            if is_dead:
+                return await self.combat_engine._end_combat_defeat()
+            combat.turn += 1
+
         # Record event
         x, y, z = self.world.current_position
         self.narrative.add_item_event(
@@ -198,7 +214,8 @@ class InteractionEngine:
             success=True,
             message=msg,
             narrative=effect_msg or f"You used the {effect_data['item_name']}.",
-            state_changes={"item_used": item_id}
+            state_changes={"item_used": item_id},
+            combat_data=combat.model_dump() if combat and combat.in_combat else None
         )
 
     async def talk(self, player_input: str = "") -> ActionResult:

@@ -540,8 +540,9 @@ Always respond with valid JSON matching the requested format."""
         if not enemies_data:
             return []
 
-        # 40% chance of no enemies
-        if random.random() < 0.4:
+        # 55% chance of no enemies — with combat auto-starting on room entry,
+        # much above ~45% enemy rooms turns exploration into a fight gauntlet
+        if random.random() < 0.55:
             return []
 
         # Filter enemies by biome

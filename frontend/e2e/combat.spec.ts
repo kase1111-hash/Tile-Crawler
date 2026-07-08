@@ -38,10 +38,29 @@ test.describe('Combat', () => {
     const overlay = page.locator('.combat-overlay');
     await expect(overlay).toBeVisible({ timeout: 15000 });
     await expect(overlay.locator('.combat-title')).toContainText('COMBAT');
+    await expect(overlay.locator('.combat-turn')).toContainText(/Turn \d+/);
     await expect(overlay.locator('.combat-enemy')).not.toHaveText('');
-    await expect(overlay.locator('.combat-hp')).toContainText(/HP: \d+\/\d+/);
+    await expect(overlay.locator('.combat-hp')).toContainText(/\d+\/\d+/);
+    await expect(overlay.locator('.enemy-bar')).toBeVisible();
+    await expect(overlay.locator('.combat-player-hp')).toContainText(/\d+\/\d+/);
     await expect(overlay.locator('.action-btn').filter({ hasText: 'Attack' })).toBeVisible();
     await expect(overlay.locator('.action-btn').filter({ hasText: 'Flee' })).toBeVisible();
+    await expect(overlay.locator('.action-btn').filter({ hasText: 'Item' })).toBeVisible();
+  });
+
+  test('inventory opens during combat and warns about the turn cost', async ({ page }) => {
+    test.skip(!(await enterCombat(page)), 'no enemy encountered within the walk budget');
+    await page.reload();
+    await expect(page.locator('.combat-overlay')).toBeVisible({ timeout: 15000 });
+
+    // Keypresses are dropped while a request is in flight
+    await expect(page.locator('.loading-spinner')).not.toBeVisible();
+    await page.keyboard.press('i');
+    await expect(page.locator('.inventory-box')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.inv-combat-warning')).toContainText('enemy');
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.inventory-box')).not.toBeVisible();
   });
 
   test('A key attacks during combat', async ({ page }) => {

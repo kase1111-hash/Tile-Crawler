@@ -37,7 +37,8 @@ async def attack(request: Request, current_user: Optional[User] = Depends(get_op
         message=result.message,
         narrative=result.narrative,
         state=engine.get_game_state(),
-        combat=result.combat_data
+        combat=result.combat_data,
+        defeat=bool(result.state_changes.get("defeat"))
     )
 
 
@@ -66,5 +67,6 @@ async def flee(request: Request, current_user: Optional[User] = Depends(get_opti
         message=result.message,
         narrative=result.narrative,
         state=engine.get_game_state(),
-        combat=result.combat_data
+        combat=result.combat_data,
+        defeat=bool(result.state_changes.get("defeat"))
     )

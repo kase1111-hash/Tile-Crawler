@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { GameMenu } from './components';
+import type { ExploredRoom } from './types/game';
 
 // Biome-specific tile sets for the 3D view
 const BIOME_TILES: Record<string, { wall: string; floor: string; ceil: string; alt: string }> = {
@@ -187,6 +188,39 @@ function render3DView(
   return lines;
 }
 
+// Minimap: a viewport of visited rooms centred on the player.
+// North is y-1 in world coords, so ascending y renders top-to-bottom correctly.
+const MINIMAP_RADIUS = 3;
+
+function renderMinimap(explored: ExploredRoom[], px: number, py: number): string[] {
+  const byKey = new Map(explored.map((r) => [`${r.x},${r.y}`, r]));
+  const rows: string[] = [];
+  for (let y = py - MINIMAP_RADIUS; y <= py + MINIMAP_RADIUS; y++) {
+    let row = '';
+    for (let x = px - MINIMAP_RADIUS; x <= px + MINIMAP_RADIUS; x++) {
+      const room = byKey.get(`${x},${y}`);
+      if (x === px && y === py) row += '@';
+      else if (!room) row += ' ';
+      else if (room.stairs_down) row += '>';
+      else if (room.stairs_up) row += '<';
+      else if (room.has_npcs) row += '☺';
+      else if (room.has_enemies) row += '&';
+      else row += '·';
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+const MINIMAP_GLYPH_CLASS: Record<string, string> = {
+  '@': 'mm-player',
+  '>': 'mm-stairs',
+  '<': 'mm-stairs',
+  '☺': 'mm-npc',
+  '&': 'mm-enemy',
+  '·': 'mm-room',
+};
+
 function App() {
   const {
     gameState,
@@ -194,6 +228,7 @@ function App() {
     error,
     narrative,
     dialogueData,
+    deathData,
     newGame,
     loadGame,
     saveGame,
@@ -206,6 +241,7 @@ function App() {
     talk,
     rest,
     clearDialogue,
+    clearDeath,
   } = useGame();
 
   const [selectedItem, setSelectedItem] = useState<number>(0);
@@ -221,6 +257,12 @@ function App() {
       const items = gameState.inventory;
       const exits = gameState.room.exits;
 
+      // The death screen swallows all input until dismissed
+      if (deathData) {
+        if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') clearDeath();
+        return;
+      }
+
       if (e.key === 'Escape' || (e.key.toLowerCase() === 'q' && (showInventory || dialogueData))) {
         if (showInventory) { setShowInventory(false); return; }
         if (dialogueData) { clearDialogue(); return; }
@@ -228,7 +270,8 @@ function App() {
 
       if (dialogueData) return;
 
-      if (e.key.toLowerCase() === 'i' && !inCombat) {
+      // Inventory is available mid-combat too — using an item costs the turn
+      if (e.key.toLowerCase() === 'i') {
         setShowInventory(prev => !prev);
         return;
       }
@@ -295,7 +338,7 @@ function App() {
         if (roomItems[num - 1]) takeItem(roomItems[num - 1].id);
       }
     },
-    [gameState, isLoading, dialogueData, selectedItem, showInventory, facing, move, attack, flee, rest, talk, takeItem, consumeItem, clearDialogue, saveGame]
+    [gameState, isLoading, dialogueData, deathData, selectedItem, showInventory, facing, move, attack, flee, rest, talk, takeItem, consumeItem, clearDialogue, clearDeath, saveGame]
   );
 
   useEffect(() => {
@@ -308,6 +351,11 @@ function App() {
     const interval = setInterval(() => saveGame(), 60000);
     return () => clearInterval(interval);
   }, [gameState, saveGame]);
+
+  // Dying closes the inventory so the death screen stands alone
+  useEffect(() => {
+    if (deathData) setShowInventory(false);
+  }, [deathData]);
 
   if (!gameState) {
     return (
@@ -361,6 +409,17 @@ function App() {
   const compassFull = { north: 'NORTH', south: 'SOUTH', east: 'EAST', west: 'WEST' };
   const hpBar = '█'.repeat(Math.floor(hpPct / 10)) + '░'.repeat(10 - Math.floor(hpPct / 10));
   const mpBar = '█'.repeat(Math.floor(mpPct / 10)) + '░'.repeat(10 - Math.floor(mpPct / 10));
+
+  const minimap = renderMinimap(
+    gameState.explored ?? [],
+    gameState.position[0],
+    gameState.position[1]
+  );
+
+  const enemyHpPct = gameState.combat
+    ? Math.max(0, Math.round((gameState.combat.enemy_hp / gameState.combat.enemy_max_hp) * 100))
+    : 0;
+  const enemyBar = '█'.repeat(Math.ceil(enemyHpPct / 10)) + '░'.repeat(10 - Math.ceil(enemyHpPct / 10));
 
   return (
     <div className="dungeon-container">
@@ -420,6 +479,12 @@ function App() {
             <div className={`exit-dir ${canGoRight ? 'exit-open' : 'exit-blocked'}`}>
               [D] {canGoRight ? '► Right' : '▌ Wall'}
             </div>
+            {exits.down && (
+              <div className="stairs-dir">{'[>] ▼ Stairs Down'}</div>
+            )}
+            {exits.up && (
+              <div className="stairs-dir">{'[<] ▲ Stairs Up'}</div>
+            )}
           </div>
 
           {gameState.room.items.length > 0 && (
@@ -430,6 +495,19 @@ function App() {
               ))}
             </div>
           )}
+
+          <div className="minimap-block">
+            <div className="block-title">FLOOR {gameState.position[2] + 1}</div>
+            <div className="minimap">
+              {minimap.map((row, i) => (
+                <div key={i} className="minimap-row">
+                  {row.split('').map((c, j) => (
+                    <span key={j} className={MINIMAP_GLYPH_CLASS[c] ?? ''}>{c}</span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Bottom bar - Messages */}
@@ -441,6 +519,7 @@ function App() {
           </div>
           <div className="controls-hint">
             [WASD] Move · [I] Inventory · [G] Get · [T] Talk · [R] Rest · [Q] Save
+            {(exits.up || exits.down) && <span className="hint-stairs"> · {'[</>] Stairs'}</span>}
           </div>
         </div>
 
@@ -449,11 +528,19 @@ function App() {
           <div className="combat-overlay">
             <div className="combat-box">
               <div className="combat-title">⚔ COMBAT ⚔</div>
+              <div className="combat-turn">Turn {gameState.combat.turn}</div>
               <div className="combat-enemy">{gameState.combat.enemy_name}</div>
-              <div className="combat-hp">HP: {gameState.combat.enemy_hp}/{gameState.combat.enemy_max_hp}</div>
+              <div className="combat-hp">
+                <span className="enemy-bar">[{enemyBar}]</span> {gameState.combat.enemy_hp}/{gameState.combat.enemy_max_hp}
+              </div>
+              <div className="combat-player-hp">
+                <span className="combat-you">YOU</span>
+                <span className="hp-bar">[{hpBar}]</span> {hp}/{maxHp}
+              </div>
               <div className="combat-actions">
                 <span className="action-btn">[A] Attack</span>
                 <span className="action-btn">[F] Flee</span>
+                <span className="action-btn action-item">[I] Item</span>
               </div>
             </div>
           </div>
@@ -480,6 +567,18 @@ function App() {
         </div>
       )}
 
+      {/* Death overlay */}
+      {deathData && (
+        <div className="overlay">
+          <div className="death-box">
+            <div className="death-title">☠ YOU DIED ☠</div>
+            <div className="death-cause">{deathData.message}</div>
+            <div className="death-narrative">{deathData.narrative}</div>
+            <div className="death-dismiss">[Enter] Rise again</div>
+          </div>
+        </div>
+      )}
+
       {/* Inventory overlay */}
       {showInventory && (
         <div className="overlay">
@@ -497,7 +596,10 @@ function App() {
                 ))
               )}
             </div>
-            <div className="inv-footer">↑↓ Select · [U] Use · [Q] Close</div>
+            <div className="inv-footer">
+              ↑↓ Select · [U] Use · [Q] Close
+              {inCombat && <div className="inv-combat-warning">⚠ Using an item lets the enemy strike</div>}
+            </div>
           </div>
         </div>
       )}
