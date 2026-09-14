@@ -172,6 +172,9 @@ LLM settings are controlled via environment variables:
 | `OPENAI_API_KEY` | (required) | OpenAI API key |
 | `LLM_MODEL` | `gpt-4o-mini` | Model to use |
 | `OPENAI_API_BASE` | (OpenAI default) | Override for local LLMs (e.g., Ollama) |
+| `LLM_TIMEOUT_SECONDS` | `30` | Per-request LLM timeout |
+| `LLM_MAX_RETRIES` | `1` | Retries per LLM request |
+| `LLM_COOLDOWN_SECONDS` | `60` | After a connection failure, use fallback rooms for this long before retrying the LLM |
 | `AUTH_ENABLED` | `false` | Enable JWT authentication |
 | `SESSION_TIMEOUT_MINUTES` | `60` | Inactive session cleanup |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins |

@@ -151,6 +151,7 @@ class GameEngine:
 
         # Generate starting room
         result = await self._generate_room(0, 0, 0, "dungeon", {"south": True})
+        self.world.update_position(0, 0, 0)
 
         self.narrative.add_event(
             event_type="discovery",
@@ -280,7 +281,11 @@ class GameEngine:
             return "void"
 
     def _determine_exits(self, x: int, y: int, z: int, from_direction: str) -> dict[str, bool]:
-        """Determine available exits for a new room."""
+        """Determine available exits for a new room.
+
+        Exits toward rooms that already exist mirror that room's exits
+        exactly, so a doorway is always usable from both sides.
+        """
         opposite = {"north": "south", "south": "north", "east": "west", "west": "east", "up": "down", "down": "up"}
         exits = {opposite.get(from_direction, "south"): True}
 
@@ -288,15 +293,26 @@ class GameEngine:
             if direction not in exits:
                 dx, dy = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}[direction]
                 adj_room = self.world.get_room(x + dx, y + dy, z)
-                if adj_room and adj_room.exits.get(opposite[direction], False):
-                    exits[direction] = True
+                if adj_room:
+                    if adj_room.exits.get(opposite[direction], False):
+                        exits[direction] = True
                 elif random.random() < NEW_EXIT_CHANCE:
                     exits[direction] = True
 
-        if z < MAX_DUNGEON_DEPTH and random.random() < STAIRS_SPAWN_CHANCE:
+        below = self.world.get_room(x, y, z + 1)
+        if below:
+            if below.exits.get("up", False):
+                exits["down"] = True
+        elif z < MAX_DUNGEON_DEPTH and random.random() < STAIRS_SPAWN_CHANCE:
             exits["down"] = True
-        if z > 0 and random.random() < STAIRS_SPAWN_CHANCE:
-            exits["up"] = True
+
+        if "up" not in exits:
+            above = self.world.get_room(x, y, z - 1)
+            if above:
+                if above.exits.get("down", False):
+                    exits["up"] = True
+            elif z > 0 and random.random() < STAIRS_SPAWN_CHANCE:
+                exits["up"] = True
 
         return exits
 
@@ -329,7 +345,9 @@ class GameEngine:
             items=llm_response.items,
             npcs=llm_response.npcs,
             features=llm_response.features,
-            visited=True
+            # Rooms are generated ahead of the player by prefetch, so a room
+            # only becomes visited when update_position() moves them into it.
+            visited=False
         )
 
         self.world.set_room(room)
@@ -405,7 +423,7 @@ class GameEngine:
                 "story_summary": self.narrative.story_summary
             },
             "stats": {
-                "rooms_explored": self.world.explored_count,
+                "rooms_explored": sum(1 for r in self.world.rooms.values() if r.visited),
                 "enemies_defeated": self.player.enemies_defeated,
                 "steps_taken": self.player.steps_taken,
                 "deaths": self.player.deaths

@@ -8,8 +8,9 @@ for dynamic content generation.
 import json
 import os
 import logging
+import time
 from typing import Optional
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APIConnectionError, APITimeoutError
 from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
 from metrics import timed_llm_call
@@ -54,10 +55,23 @@ class LLMEngine:
         self.model = os.getenv("LLM_MODEL", "llama3.2")
         self.base_url = os.getenv("OPENAI_API_BASE", "http://localhost:11434/v1")
 
+        # The OpenAI client defaults to a 10-minute timeout with 2 retries.
+        # Every move waits on room generation, so an unreachable LLM (no
+        # Ollama running, wrong host in Docker) must fail fast and fall back
+        # to template rooms instead of hanging the game.
+        self.timeout_seconds = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
+        self.max_retries = int(os.getenv("LLM_MAX_RETRIES", "1"))
+        # After a connection failure, skip the LLM entirely for this long so
+        # each move doesn't re-pay the connect timeout.
+        self.cooldown_seconds = float(os.getenv("LLM_COOLDOWN_SECONDS", "60"))
+        self._unavailable_until: float = 0.0
+
         if self.api_key:
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
-                base_url=self.base_url
+                base_url=self.base_url,
+                timeout=self.timeout_seconds,
+                max_retries=self.max_retries,
             )
         else:
             self.client = None
@@ -129,8 +143,19 @@ Always respond with valid JSON matching the requested format."""
         return data
 
     def is_available(self) -> bool:
-        """Check if the LLM engine is available."""
-        return self.client is not None
+        """Check if the LLM engine is configured and not in a failure cooldown."""
+        if self.client is None:
+            return False
+        return time.monotonic() >= self._unavailable_until
+
+    def _record_failure(self, exc: Exception) -> None:
+        """Start a cooldown if the failure means the LLM endpoint is unreachable."""
+        if isinstance(exc, (APIConnectionError, APITimeoutError)):
+            self._unavailable_until = time.monotonic() + self.cooldown_seconds
+            logger.warning(
+                "LLM endpoint %s unreachable (%s); using fallback content for %.0fs",
+                self.base_url, type(exc).__name__, self.cooldown_seconds,
+            )
 
     @timed_llm_call("generate_room")
     async def generate_room(
@@ -269,6 +294,7 @@ Always respond with valid JSON matching the requested format."""
 
         except Exception as e:
             logger.error(f"LLM room generation failed: {e}")
+            self._record_failure(e)
             return self._generate_fallback_room(x, y, z, biome, exits)
 
     def _generate_fallback_room(
@@ -402,27 +428,41 @@ Always respond with valid JSON matching the requested format."""
         elif base_map[mid_row][0] == " ":
             base_map[mid_row][0] = "▓"
 
-        # Down stairs
+        # Stairs go on the floor tile closest to centre (below centre for
+        # down, above for up). Templates such as caves can have water on the
+        # centre column, so fall back to the nearest floor tile anywhere.
         if exits.get("down"):
-            # Place > on a floor tile near center
-            for dy in range(3):
-                ry = mid_row + dy
-                if 0 < ry < rows - 1 and base_map[ry][mid_col] == "░":
-                    base_map[ry][mid_col] = ">"
-                    break
+            self._place_stairs(base_map, ">", mid_row, mid_col, prefer_dy=+1)
 
-        # Up stairs
         if exits.get("up"):
-            for dy in range(3):
-                ry = mid_row - dy
-                if 0 < ry < rows - 1 and base_map[ry][mid_col] == "░":
-                    base_map[ry][mid_col] = "<"
-                    break
+            self._place_stairs(base_map, "<", mid_row, mid_col, prefer_dy=-1)
 
         # Apply biome-specific tile variants
         base_map = self._apply_biome_tiles(base_map, biome)
 
         return ["".join(row) for row in base_map]
+
+    @staticmethod
+    def _place_stairs(grid: list[list[str]], glyph: str, mid_row: int, mid_col: int, prefer_dy: int) -> bool:
+        """Put a stairs glyph on the nearest interior floor tile to centre."""
+        rows = len(grid)
+        cols = len(grid[0]) if rows > 0 else 0
+        for dy in range(3):
+            ry = mid_row + prefer_dy * dy
+            if 0 < ry < rows - 1 and grid[ry][mid_col] == "░":
+                grid[ry][mid_col] = glyph
+                return True
+        floor_tiles = [
+            (abs(y - mid_row) + abs(x - mid_col), y, x)
+            for y in range(1, rows - 1)
+            for x in range(1, cols - 1)
+            if grid[y][x] == "░"
+        ]
+        if not floor_tiles:
+            return False
+        _, y, x = min(floor_tiles)
+        grid[y][x] = glyph
+        return True
 
     def _generate_procedural_map(self, biome: str) -> list[list[str]]:
         """Generate a simple procedural room map."""
@@ -770,6 +810,7 @@ Respond with JSON:
 
         except Exception as e:
             logger.error(f"LLM dialogue generation failed: {e}")
+            self._record_failure(e)
             return DialogueResponse(
                 speech=f"{npc_name} nods thoughtfully but says nothing.",
                 mood="neutral"
@@ -842,6 +883,7 @@ Respond with JSON:
 
         except Exception as e:
             logger.error(f"LLM combat narration failed: {e}")
+            self._record_failure(e)
             return fallback_response
 
     @timed_llm_call("generate_item_description")
@@ -881,6 +923,7 @@ Respond with JSON:
 
         except Exception as e:
             logger.error("LLM item description failed: %s", e)
+            self._record_failure(e)
             return f"You examine the {item_name}."
 
     @timed_llm_call("summarize_story")
@@ -922,6 +965,7 @@ Respond with JSON:
 
         except Exception as e:
             logger.error("LLM story summary failed: %s", e)
+            self._record_failure(e)
             return current_summary
 
 

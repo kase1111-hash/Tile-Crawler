@@ -520,6 +520,10 @@ body {
   color: #fff;
 }
 
+.inv-equipped {
+  color: #fbbf24;
+}
+
 .inv-footer {
   color: var(--color-dim);
   text-align: center;

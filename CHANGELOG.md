@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Distinctive texture characters for terrain types
+- Weapons and armor can be equipped and unequipped from the inventory (Use/Equip)
+- Treasure pickups (gold coins, gems) are converted straight into gold
+- Scrolls of Fireball, Teleport and Light now have effects
+- `LLM_TIMEOUT_SECONDS`, `LLM_MAX_RETRIES` and `LLM_COOLDOWN_SECONDS` settings
+
+### Fixed
+- An unreachable LLM endpoint no longer stalls every move; after one connection
+  failure the game uses fallback rooms for a cooldown period and the health
+  endpoint reports `degraded`
+- Room exits now mirror existing neighbours, so doorways (including stairs) are
+  never one-way
+- Prefetched rooms no longer show on the minimap or count as explored until the
+  player enters them
+- Fallback rooms with stairs always draw the stairs glyph, even when the centre
+  of the room is water
+- Autosave runs silently instead of replacing the room text with "Game saved"
+  every minute
+- Keyboard input is accepted as soon as the HUD appears
+- NPC indicator shows a readable name instead of the internal id
 
 ## [0.1.0] - 2026-01-01
 
