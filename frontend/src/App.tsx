@@ -1,6 +1,6 @@
 // Main App Component for Tile-Crawler - Fullscreen Pseudo-3D View
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { GameMenu } from './components';
 import type { ExploredRoom } from './types/game';
@@ -212,6 +212,15 @@ function renderMinimap(explored: ExploredRoom[], px: number, py: number): string
   return rows;
 }
 
+// NPC ids arrive as snake_case data keys (e.g. "old_hermit")
+function npcDisplayName(npcId: string): string {
+  return npcId
+    .split('_')
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 const MINIMAP_GLYPH_CLASS: Record<string, string> = {
   '@': 'mm-player',
   '>': 'mm-stairs',
@@ -232,6 +241,7 @@ function App() {
     newGame,
     loadGame,
     saveGame,
+    autoSave,
     move,
     attack,
     flee,
@@ -341,16 +351,26 @@ function App() {
     [gameState, isLoading, dialogueData, deathData, selectedItem, showInventory, facing, move, attack, flee, rest, talk, takeItem, consumeItem, clearDialogue, clearDeath, saveGame]
   );
 
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+  // The listener is registered once and always dispatches to the latest
+  // handler. Re-registering per render left a window after the HUD painted
+  // where the stale (no-game) handler was still attached and dropped keys.
+  const keyHandlerRef = useRef(handleKeyDown);
+  useLayoutEffect(() => {
+    keyHandlerRef.current = handleKeyDown;
   }, [handleKeyDown]);
 
   useEffect(() => {
-    if (!gameState) return;
-    const interval = setInterval(() => saveGame(), 60000);
+    const listener = (e: KeyboardEvent) => keyHandlerRef.current(e);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
+
+  const hasGame = gameState !== null;
+  useEffect(() => {
+    if (!hasGame) return;
+    const interval = setInterval(() => autoSave(), 60000);
     return () => clearInterval(interval);
-  }, [gameState, saveGame]);
+  }, [hasGame, autoSave]);
 
   // Dying closes the inventory so the death screen stands alone
   useEffect(() => {
@@ -550,7 +570,7 @@ function App() {
         {gameState.room.npcs.length > 0 && !inCombat && (
           <div className="npc-indicator">
             <span className="npc-icon">☺</span>
-            <span>{gameState.room.npcs[0]} is here</span>
+            <span>{npcDisplayName(gameState.room.npcs[0])} is here</span>
             <span className="npc-hint">[T] Talk</span>
           </div>
         )}
@@ -592,12 +612,13 @@ function App() {
                   <div key={item.id} className={`inv-item ${i === selectedItem ? 'selected' : ''}`}>
                     {i === selectedItem ? '► ' : '  '}{item.name}
                     {item.quantity > 1 && ` x${item.quantity}`}
+                    {item.equipped && <span className="inv-equipped"> [E]</span>}
                   </div>
                 ))
               )}
             </div>
             <div className="inv-footer">
-              ↑↓ Select · [U] Use · [Q] Close
+              ↑↓ Select · [U] Use/Equip · [Q] Close
               {inCombat && <div className="inv-combat-warning">⚠ Using an item lets the enemy strike</div>}
             </div>
           </div>

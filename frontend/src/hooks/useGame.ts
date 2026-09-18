@@ -22,6 +22,7 @@ interface UseGameReturn {
   newGame: (playerName?: string) => Promise<void>;
   loadGame: () => Promise<void>;
   saveGame: () => Promise<void>;
+  autoSave: () => Promise<void>;
   move: (direction: Direction) => Promise<void>;
   attack: () => Promise<void>;
   flee: () => Promise<void>;
@@ -127,6 +128,16 @@ export function useGame(): UseGameReturn {
     }
   }, [withLoading]);
 
+  // Periodic background save: no spinner and no message, so it never
+  // interrupts play or overwrites the room text the player is reading.
+  const autoSave = useCallback(async () => {
+    try {
+      await api.saveGame();
+    } catch {
+      // A missed autosave is harmless; the next one retries
+    }
+  }, []);
+
   const move = useCallback(
     async (direction: Direction) => {
       const response = await withLoading(() => api.move(direction));
@@ -220,6 +231,7 @@ export function useGame(): UseGameReturn {
     newGame,
     loadGame,
     saveGame,
+    autoSave,
     move,
     attack,
     flee,

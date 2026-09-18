@@ -78,6 +78,7 @@ async def get_game_state(
         biome = engine._determine_biome(z)
         exits = {"south": True} if (x, y, z) == (0, 0, 0) else engine._determine_exits(x, y, z, "north")
         await engine._generate_room(x, y, z, biome, exits)
+        engine.world.update_position(x, y, z)
 
     state = engine.get_game_state()
     return GameStateResponse(**state)

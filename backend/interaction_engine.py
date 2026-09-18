@@ -69,6 +69,28 @@ class InteractionEngine:
         item_name = item_found.get("name", item_template.get("name", item_id))
         item_desc = item_template.get("description", "")
         category = item_template.get("category", "misc")
+        quantity = item_found.get("quantity", 1)
+
+        # Treasure has no use as an inventory item and there is no shop to
+        # sell it at, so it goes straight into the purse at its base value.
+        if category == "treasure":
+            gold_value = max(1, int(item_template.get("base_value", 1))) * quantity
+            x, y, z = self.world.current_position
+            self.world.remove_item_from_room(x, y, z, item_id)
+            self.inventory.add_gold(gold_value)
+            self.narrative.add_item_event(
+                action="picked up",
+                item_name=item_name,
+                location=(x, y, z),
+                effect=f"worth {gold_value} gold",
+            )
+            return ActionResult(
+                success=True,
+                message=f"Picked up {item_name} (+{gold_value} gold)",
+                narrative=f"You pocket the {item_name.lower()}, worth {gold_value} gold.",
+                state_changes={"gold_gained": gold_value},
+            )
+
         stackable = item_template.get("stackable", True)
         max_stack = item_template.get("max_stack", 99)
         slot = item_template.get("slot")
@@ -80,7 +102,7 @@ class InteractionEngine:
             name=item_name,
             description=item_desc,
             category=category,
-            quantity=item_found.get("quantity", 1),
+            quantity=quantity,
             stackable=stackable,
             max_stack=max_stack,
             slot=slot,
@@ -118,23 +140,42 @@ class InteractionEngine:
         )
 
     async def use_item(self, item_id: str) -> ActionResult:
-        """Use an item from inventory."""
-        success, msg, effect_data = self.inventory.use_item(item_id)
+        """Use an item from inventory.
 
-        if not success:
-            return ActionResult(
-                success=False,
-                message=msg,
-                narrative="You can't use that."
-            )
+        Consumables are spent for their effect; weapons and armor toggle
+        between equipped and unequipped (there is no separate equip action).
+        """
+        owned = self.inventory.get_item(item_id)
+        if owned and owned.slot:
+            if owned.equipped:
+                success, msg = self.inventory.unequip_item(item_id)
+            else:
+                success, msg = self.inventory.equip_item(item_id)
+            if not success:
+                return ActionResult(success=False, message=msg, narrative="You can't equip that.")
+            effect_data = {"item_id": item_id, "item_name": owned.name, "category": owned.category}
+            effect_msg = msg + "."
+            effect_type = "equip"
+        else:
+            success, msg, effect_data = self.inventory.use_item(item_id)
 
-        # Process item effect
-        item_template = self.item_data.get(item_id, {})
-        effect = item_template.get("effect", {})
-        effect_type = effect.get("type", "")
-        effect_msg = ""
+            if not success:
+                return ActionResult(
+                    success=False,
+                    message=msg,
+                    narrative="You can't use that."
+                )
 
-        if effect_type == "heal":
+            # Process item effect
+            item_template = self.item_data.get(item_id, {})
+            effect = item_template.get("effect", {})
+            effect_type = effect.get("type", "")
+            effect_msg = ""
+
+        if effect_type == "equip":
+            pass
+
+        elif effect_type == "heal":
             heal_amount = effect.get("value", 30)
             actual_heal, heal_msg = self.player.heal(heal_amount, effect_data["item_name"])
             effect_msg = heal_msg
@@ -185,9 +226,15 @@ class InteractionEngine:
             self.player.add_status_effect(light_buff)
             effect_msg = f"The {effect_data['item_name'].lower()} flickers to life, casting warm light around you."
 
+        elif effect_type == "spell":
+            effect_msg = self._cast_scroll(effect, effect_data["item_name"])
+
+        combat = self.combat_engine.combat
+        if combat and combat.in_combat and combat.enemy_hp <= 0:
+            return await self.combat_engine._end_combat_victory()
+
         # Using an item mid-combat costs the turn: the enemy gets a free swing
         # (unless the item just ended the fight, e.g. a smoke bomb)
-        combat = self.combat_engine.combat
         if combat and combat.in_combat:
             equip_def = self.inventory.get_equipped_stats().get("defense", 0)
             taken, is_dead, damage_msg = self.player.take_damage(
@@ -217,6 +264,42 @@ class InteractionEngine:
             state_changes={"item_used": item_id},
             combat_data=combat.model_dump() if combat and combat.in_combat else None
         )
+
+    def _cast_scroll(self, effect: dict, item_name: str) -> str:
+        """Resolve a scroll's spell. Returns the narrative message."""
+        spell = effect.get("spell", "")
+        combat = self.combat_engine.combat
+        in_combat = bool(combat and combat.in_combat)
+
+        if spell == "fireball":
+            if not in_combat:
+                return f"The {item_name} bursts into flame and scorches the empty air."
+            damage = int(effect.get("damage", 40))
+            combat.enemy_hp -= damage
+            if combat.enemy_hp <= 0:
+                combat.enemy_hp = 0
+                return f"A roaring fireball engulfs the {combat.enemy_name} for {damage} damage!"
+            return f"A fireball slams into the {combat.enemy_name} for {damage} damage!"
+
+        if spell == "teleport":
+            self.combat_engine.combat = None
+            self.world.update_position(0, 0, 0)
+            return "The world folds around you. You reappear at the dungeon entrance."
+
+        if spell == "light":
+            radius = effect.get("radius", 6)
+            duration = effect.get("duration", 50)
+            self.player.add_status_effect(StatusEffect(
+                id="light_source",
+                name="Torch Light",
+                effect_type="buff",
+                stat_modifiers={"visibility": radius},
+                duration=duration,
+                source=item_name,
+            ))
+            return "Brilliant light blooms from the scroll and hangs in the air around you."
+
+        return f"The {item_name} crumbles to dust with no visible effect."
 
     async def talk(self, player_input: str = "") -> ActionResult:
         """Talk to an NPC in the current room."""
